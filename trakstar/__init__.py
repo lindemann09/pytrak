@@ -4,4 +4,4 @@ O. Lindemann
 """
 
 import atc3dg_functions as api
-from trakstar_interface import *
+from trakstar_interface import TrakSTARInterface
