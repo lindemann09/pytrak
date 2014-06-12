@@ -34,3 +34,4 @@ var/
 # Sphinx documentation
 docs/_build/
 
+events/
