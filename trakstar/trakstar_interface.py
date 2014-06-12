@@ -87,7 +87,7 @@ class TrakSTARInterface(object):
             if data_dict.has_key(sensor):
                 if time:
                     txt = txt + "{0},".format(data_dict["time"])
-                txt = txt + "%d,%.4f,%.4f,%.4f" % (sensor, data_dict[sensor][0],
+                txt = txt + "%d,%.4f,%.4f,%.4f" % (sensor+1, data_dict[sensor][0],
                                          data_dict[sensor][1], data_dict[sensor][2])
                 if angles:
                     txt = txt + ",%.4f,%.4f,%.4f" % (data_dict[sensor][3],

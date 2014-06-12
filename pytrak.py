@@ -32,11 +32,14 @@ colours = { 0: misc.constants.C_RED,
             1: misc.constants.C_GREEN,
             2: misc.constants.C_YELLOW,
             3: misc.constants.C_BLUE }
-circle_diameter = 20
+circle_diameter = 40
 circles = {}
 canvas = stimuli.BlankScreen()
 for sensor in sensors:
     circles[sensor] = stimuli.Circle(circle_diameter, colour=colours[sensor])
+    stimuli.TextLine(str(sensor+1), text_size=circle_diameter/2, text_bold=True,
+                     text_colour=misc.constants.C_WHITE).plot(circles[sensor])
+                       
 
 init_time = time.time() 
 
@@ -46,18 +49,19 @@ while key is None:
     cnt += 1
     data = trakstar.getSynchronousRecordDataDict(init_time)
     for sensor in sensors:
-        output.add([data["time"], sensor, data[sensor][0],
+        output.add([data["time"], sensor+1, data[sensor][0],
                     data[sensor][1], data[sensor][2]])
         circles[sensor].position = (int(round(data[sensor][1]*10)),
                                     int(round(data[sensor][0]*10)))
     canvas.clear_surface()
     sample_rate = 1000 * cnt / float(exp.clock.stopwatch_time)
-    #if cnt % 30==0:
-    stimuli.TextBox(text = "{0}\n{1}\n".format(cnt, sample_rate) +
-                    TrakSTARInterface.data2string(data),
-                    size = (400, 300), text_size=20).plot(canvas)
+    if cnt % 30==1:
+        txt_box = stimuli.TextBox(text = "{0}\n{1}\n".format(cnt, sample_rate) +
+                        TrakSTARInterface.data2string(data),
+                        size = (400, 300), text_size=20)
     for circle in circles.values():
         circle.plot(canvas)
+    txt_box.plot(canvas)
     canvas.present()
                 
     output.save()        
