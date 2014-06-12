@@ -124,3 +124,6 @@ class TrakSTARInterface(object):
         return d
     
 
+    def SetSystemConfiguration(self, system_configuration):
+        #TODO
+        pass
