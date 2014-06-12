@@ -1,7 +1,6 @@
 from trakstar import TrakSTARInterface
 from expyriment import control, stimuli, design
 
-"""doku"""
 
 control.defaults.initialize_delay = 0
 control.defaults.window_mode = True
