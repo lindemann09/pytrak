@@ -18,4 +18,4 @@ Links
 -----
 * Expyriment: http://www.expyriment.org and https://github.com/expyriment/expyriment
 * trakSTAR 2: http://www.ascension-tech.com/medical/trakSTAR.php
-* tarkSTAR Windows API: ftp://ftp.ascension-tech.com/DRIVERS/MATLAB_LABVIEW_DRIVER/MATLAB%20Demo%20v5.zip
+* dll files (trakSTAR Windows API): ftp://ftp.ascension-tech.com/DRIVERS/MATLAB_LABVIEW_DRIVER/MATLAB%20Demo%20v5.zip
