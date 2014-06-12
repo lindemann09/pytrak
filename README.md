@@ -1,15 +1,15 @@
 PyTrak
 ======
 
-Python-based motion tracking driver for trakSTAR ()
+Python api wrapper and motion tracking driver for 3D Guidance trakSTAR
 
-*NOTE*: So far, merely tested under Windows.
+*NOTE*: So far, the Python api wrapper has been merely tested under Windows.
 
 
 Dependencies
 ------------
 * Expyriment 0.7.0
-* trakSTAR Windows API (ATC3DG.DLL or ATC3DG64.DLL). The dynamic link library (dll-file) is needed in the Windows 
+* trakSTAR Windows API (ATC3DG.DLL or ATC3DG64.DLL). The dynamic link library is needed in the Windows 
   system folder or in the trakSTAR-api subfolder. (see trakSTAR driver CD or ftp.ascension-tech.com)
 
 Links
