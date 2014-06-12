@@ -1,5 +1,6 @@
 from trakstar import TrakSTARInterface
 from expyriment import control, stimuli, design, io
+import time
 
 
 control.defaults.initialize_delay = 0
@@ -27,11 +28,13 @@ if not write_angle and not write_quality:
     output.add_variable_names(["time", "sensor", "x", "y", "z"])
 #elif ... 
 
+init_time = time.time()
+
 exp.keyboard.clear()
 exp.clock.reset_stopwatch()
 while key is None:
     cnt += 1
-    data = trakstar.getSynchronousRecordDataDict()
+    data = trakstar.getSynchronousRecordDataDict(init_time)
     for sensor in sensors:
         output.add([data["time"], sensor, data[sensor][0],
                     data[sensor][1], data[sensor][2]])
@@ -41,6 +44,8 @@ while key is None:
         stimuli.TextBox(text = "{0}\n{1}\n".format(cnt, sample_rate) +
                         TrakSTARInterface.data2string(data),
                         size = (400, 300), text_size=20).present()
+
+    
     output.save()        
     key = exp.keyboard.check()
     
