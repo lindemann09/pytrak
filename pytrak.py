@@ -1,6 +1,7 @@
 from trakstar import TrakSTARInterface
 from expyriment import control, stimuli, design
 
+"""doku"""
 
 control.defaults.initialize_delay = 0
 control.defaults.window_mode = True
@@ -34,3 +35,4 @@ while key is None:
 stimuli.TextLine(text="Closing trakSTAR").present()
 trakstar.close()
 control.end()
+
