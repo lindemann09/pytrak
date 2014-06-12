@@ -34,6 +34,3 @@ while key is None:
 stimuli.TextLine(text="Closing trakSTAR").present()
 trakstar.close()
 control.end()
-
-    
-#def make_dots(
