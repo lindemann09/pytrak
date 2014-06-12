@@ -1,7 +1,7 @@
 PyTrak
 ======
 
-Python api wrapper and motion tracking driver for 3D Guidance trakSTAR
+Python api wrapper & recording server for 3D Guidance trakSTAR
 
 *GNU General Public License v3*  
 Oliver Lindemann (oliver@expyriment.org) & Raphael Wallroth
