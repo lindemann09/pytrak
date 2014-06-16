@@ -1,6 +1,12 @@
+"""TrakSTARInterface"""
+
+__author__ = 'Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>,\
+Raphael Wallroth <>'
+__version__ = 0.1
+
 import ctypes
 import atc3dg_functions as api
-#import time
+import time
 
 class TrakSTARInterface(object):
 
@@ -63,7 +69,7 @@ class TrakSTARInterface(object):
                             api.SensorParameterType.DATA_FORMAT,
                             ctypes.pointer(api.DataFormatType.DOUBLE_POSITION_ANGLES_TIME_Q),
                             4)
-        #self.init_time = time.time()
+        self.init_time = time.time()
         print "Done."
 
     def is_init(self):
@@ -97,14 +103,14 @@ class TrakSTARInterface(object):
                 txt = txt + "\n"          
         return txt[:-1]
 
-    def getSynchronousRecordDataDict(self, init_time):
+    def getSynchronousRecordDataDict(self):
         error_code = api.GetSynchronousRecord(api.ALL_SENSORS,
                                     self._precord, 4 * 1 * 64)     
         if error_code!=0:
             self._error_handler(error_code)
         # convert2data_dict
         d = {}
-        d["time"] = int((self._record.time0 - init_time) * 1000)
+        d["time"] = int((self._record.time0 - self.init_time) * 1000)
         if 0 in self.attached_sensors:
             d[0] = [self._record.x0, self._record.y0, self._record.z0,
                    self._record.a0, self._record.e0, self._record.r0,

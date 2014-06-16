@@ -2,7 +2,7 @@
 
 __author__ = 'Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>,\
 Raphael Wallroth <>'
-__version__ = 0.2
+__version__ = 0.1
 
 import math
 
@@ -11,9 +11,9 @@ class SensorHistory():
     calculates online the moving average (running mean).
     """
 
-    def __init__(self, history_size, number_of_sensors):
-        self.history = [[0] * number_of_sensors] * history_size
-        self._moving_average = [0] * number_of_sensors
+    def __init__(self, history_size, number_of_parameter):
+        self.history = [[0] * number_of_parameter] * history_size
+        self._moving_average = [0] * number_of_parameter
         self._correction_cnt = 0
         self._previous_moving_average = self._moving_average
 
@@ -54,7 +54,7 @@ class SensorHistory():
 
         """
 
-        s = [float(0)] * self.number_of_sensors
+        s = [float(0)] * self.number_of_parameter
         for t in self.history:
             s = map(lambda x:x[0]+x[1], zip(s, t))
         return map(lambda x:x/len(self.history), s)
@@ -76,7 +76,7 @@ class SensorHistory():
         return len(self.history)
 
     @property
-    def number_of_sensors(self):
+    def number_of_parameter(self):
         return len(self.history[0])
 
     @property
@@ -92,6 +92,7 @@ class SensorHistory():
         """returns the current replacement based on filtered data"""
         return map(lambda x:x[0]-x[1], zip(self._moving_average,
                 self._previous_moving_average))
+
     def velocity(self, sampling_rate):
         """returns the current velocity based on filtered data"""
         return self.distance_to_point(self._previous_moving_average) * sampling_rate
@@ -99,7 +100,7 @@ class SensorHistory():
 if __name__ == "__main__":
     import random
 
-    sh = SensorHistory(history_size=5, number_of_sensors=3)
+    sh = SensorHistory(history_size=5, number_of_parameter=3)
     for x in range(19908):
         x = [random.randint(0,100),random.randint(0,100), random.randint(0,100)]
         sh.update(x)

@@ -1,6 +1,5 @@
-from trakstar import TrakSTARInterface
+from trakstar import TrakSTARInterface, SensorHistory
 from expyriment import control, stimuli, design, io, misc
-import time
 
 
 control.defaults.initialize_delay = 0
@@ -41,16 +40,19 @@ for sensor in sensors:
                      text_colour=misc.constants.C_WHITE).plot(circles[sensor])
                        
 
-init_time = time.time() 
+
+history = {}
+for sensor in sensors:
+    history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
 
 exp.keyboard.clear()
 exp.clock.reset_stopwatch()
 while key is None:
     cnt += 1
-    data = trakstar.getSynchronousRecordDataDict(init_time)
+    data = trakstar.getSynchronousRecordDataDict()
+    output.add(TrakSTARInterface.data2string(data))
     for sensor in sensors:
-        output.add([data["time"], sensor+1, data[sensor][0],
-                    data[sensor][1], data[sensor][2]])
+        history[sensor].update(data[sensor])
         circles[sensor].position = (int(round(data[sensor][1]*10)),
                                     int(round(data[sensor][0]*10)))
     canvas.clear_surface()
