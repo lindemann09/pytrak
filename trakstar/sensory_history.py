@@ -2,20 +2,16 @@
 
 __author__ = 'Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>,\
 Raphael Wallroth <>'
-__version__ = 0.1
-
-import numpy as np
+__version__ = 0.2
 
 class SensorHistory():
     """The Sensory History keeps track of the last n recorded sample and
     calculates online the moving average (running mean).
     """
 
-    DataType = np.float64
-
     def __init__(self, history_size, number_of_sensors):
-        self.history = np.zeros((history_size, number_of_sensors))
-        self._moving_average = 0
+        self.history = [[0] * number_of_sensors] * history_size
+        self._moving_average = [0] * number_of_sensors
         self._correction_cnt = 0
 
     def __str__(self):
@@ -32,18 +28,18 @@ class SensorHistory():
 
         """
 
-        values = np.array(values, dtype=SensorHistory.DataType)
-        pop = self.history[0,:]
-        self.history = np.vstack([self.history, values])[1:, :]
-
+        pop = self.history.pop(0)
+        self.history.append(values)
         # pop first element and calc moving average
         if self._correction_cnt > 10000:
             self._correction_cnt = 0
             self._moving_average = self.calc_history_average()
         else:
-            self._moving_average = self._moving_average + \
-            values / self.history.shape[0] - pop / self.history.shape[0]
             self._correction_cnt += 1
+            self._moving_average = map(
+                lambda x:x[0] + (float(x[1]-x[2])/len(self.history)),
+                        zip(self._moving_average, values, pop))
+
 
     def calc_history_average(self):
         """Calculate history averages for all sensor parameter.
@@ -54,15 +50,18 @@ class SensorHistory():
 
         """
 
-        return np.mean(self.history, axis=0, dtype=SensorHistory.DataType)
+        s = [float(0)] * self.number_of_sensors
+        for t in self.history:
+            s = map(lambda x:x[0]+x[1], zip(s, t))
+        return map(lambda x:x/len(self.history), s)
 
     @property
     def history_size(self):
-        return self.history.shape[0]
+        return len(self.history)
 
     @property
     def number_of_sensors(self):
-        return self.history.shape[1]
+        return len(self.history[0])
 
     @property
     def moving_average(self):
@@ -71,16 +70,16 @@ class SensorHistory():
     @property
     def velocity(self):
         """ returns the current velocity"""
-        return self.history[-1,:] - self.history[-2,:]
-
+        return map(lambda x:x[0]-x[1], zip(self.history[-1], self.history[-2]))
 
 
 if __name__ == "__main__":
     import random
+
     sh = SensorHistory(history_size=5, number_of_sensors=3)
-
     for x in range(19908):
-        sh.update([random.random(),random.random(),random.random()])
+        x = [random.randint(0,100),random.randint(0,100), random.randint(0,100)]
+        sh.update(x)
 
-    print sh
     print sh.moving_average, sh.calc_history_average()
+    print sh.velocity
