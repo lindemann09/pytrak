@@ -2,11 +2,14 @@
 
 __author__ = 'Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>,\
 Raphael Wallroth <>'
-__version__ = 0.1
+__version__ = '0.2.2'
 
+import os
 import ctypes
-import atc3dg_functions as api
 import time
+import atexit
+import atc3dg_functions as api
+
 
 class TrakSTARInterface(object):
 
@@ -16,11 +19,16 @@ class TrakSTARInterface(object):
         self.system_configuration = None
         self.attached_sensors = None
         self.init_time = None
+        self._file = None
+        self._write_quality = None
+        self._write_angles = None
+        atexit.register(self.close_data_file)
         
     def __del__(self):
         self.close(ignore_error=True)
     
     def close(self, ignore_error=False):
+        self.close_data_file()
         self.system_configuration = None
         self.attached_sensors = None
         self.init_time = None
@@ -28,6 +36,37 @@ class TrakSTARInterface(object):
         if error_code!=0 and not ignore_error:
             self.error_handler(error_code)
 
+    def open_data_file(self, filename, directory="data", suffix = ".csv",
+                       time_stamp_filename=True, write_angles=False,
+                       write_quality=False):
+        """if data file is open, data will be recorded"""
+        self._write_angles = write_angles
+        self._write_quality = write_quality
+        if not os.path.isdir(directory):
+            os.mkdir(directory)
+        self.close_data_file()
+
+        fullname = directory +  os.path.sep + filename
+        if time_stamp_filename:
+            fullname = fullname +"_" + \
+                     time.strftime("%Y%m%d%H%M", time.localtime())
+        fullname = fullname + suffix
+        self._file = open(fullname, 'w+')
+        self._file.write("# Motion tracking data recorded with " +\
+                             "PyTrak interface " + str(__version__) + \
+                         "\n")
+        varnames = "time,sensor,x,y,z"
+        if write_angles:
+            varnames += ",a,e,r"
+        if write_quality:
+            varnames += ",quality"
+        self._file.write(varnames + "\n")
+        
+    def close_data_file(self):
+        """ close the file"""
+        if self._file is not None:
+            self._file.close()
+    
     def initialize(self):
         if self.is_init():
             return
@@ -87,11 +126,11 @@ class TrakSTARInterface(object):
         
 
     @staticmethod
-    def data2string(data_dict, angles=False, quality=False, time=True):
+    def data2string(data_dict, angles=False, quality=False, times=True):
         txt = ""
         for sensor in range(4):
             if data_dict.has_key(sensor):
-                if time:
+                if times:
                     txt = txt + "{0},".format(data_dict["time"])
                 txt = txt + "%d,%.4f,%.4f,%.4f" % (sensor+1, data_dict[sensor][0],
                                          data_dict[sensor][1], data_dict[sensor][2])
@@ -127,8 +166,13 @@ class TrakSTARInterface(object):
             d[3] = [self._record.x3, self._record.y3, self._record.z3,
                    self._record.a3, self._record.e3, self._record.r3,
                     self._record.quality3]
+
+        if self._file is not None:
+            self._file.write(TrakSTARInterface.data2string(d,
+                        angles = self._write_angles,
+                        quality = self._write_quality) + "\n")
+
         return d
-    
 
     def SetSystemConfiguration(self, system_configuration):
         #TODO
