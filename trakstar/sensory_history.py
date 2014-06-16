@@ -1,8 +1,14 @@
-"""Sensor History with moving average filtering and velocity"""
+"""Sensor History with moving average filtering and replacement methods"""
 
 __author__ = 'Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>,\
 Raphael Wallroth <>'
 __version__ = 0.2
+
+import math
+
+def euclidian_distance(a, b):
+    """calculates euclidian distance between a and b"""
+    return math.sqrt(sum( map(lambda x:(x[1]-x[0])**2, zip(a, b)) ))
 
 class SensorHistory():
     """The Sensory History keeps track of the last n recorded sample and
@@ -68,10 +74,14 @@ class SensorHistory():
         return self._moving_average
 
     @property
-    def velocity(self):
-        """ returns the current velocity"""
+    def replacement(self):
+        """returns the last replacement"""
         return map(lambda x:x[0]-x[1], zip(self.history[-1], self.history[-2]))
 
+    @property
+    def replacement_distance(self):
+        """ returns the euclidian distance of the last replacement"""
+        return euclidian_distance(self.history[-1], self.history[-2])
 
 if __name__ == "__main__":
     import random
@@ -82,4 +92,3 @@ if __name__ == "__main__":
         sh.update(x)
 
     print sh.moving_average, sh.calc_history_average()
-    print sh.velocity
