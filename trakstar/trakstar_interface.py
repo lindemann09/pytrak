@@ -174,6 +174,31 @@ class TrakSTARInterface(object):
 
         return d
 
-    def SetSystemConfiguration(self, system_configuration):
-        #TODO
-        pass
+    def SetSystemConfiguration(self, measurementRate, maxRange, metric=True):
+        """
+        measurementRate in Hz: 20.0 < rate < 255.0
+        maxRange: valid values (in inches): 36.0, 72.0, 144.0
+        metric: True (data in mm) or False (data in inches)
+        """
+        self.mR = ctypes.c_double(measurementRate)
+        self.maxRange = ctypes.c_double(maxRange)
+        self.metric = ctypes.c_int(metric)
+        error_code = api.SetSystemParameter(api.SystemParameterType.MEASUREMENT_RATE,
+                           ctypes.pointer(self.mR), 8)
+        if error_code!=0:
+            self._error_handler(error_code)        
+        error_code = api.SetSystemParameter(api.SystemParameterType.MAXIMUM_RANGE,
+                           ctypes.pointer(self.maxRange), 8)        
+        if error_code!=0:
+            self._error_handler(error_code)        
+        error_code = api.SetSystemParameter(api.SystemParameterType.METRIC,
+                           ctypes.pointer(self.metric), 4)
+        if error_code!=0:
+            self._error_handler(error_code)        
+
+        self.system_configuration = api.SYSTEM_CONFIGURATION()
+        psys_conf = ctypes.pointer(self.system_configuration)
+        api.GetBIRDSystemConfiguration(psys_conf)
+        print "measurement rate has been set to ", self.system_configuration.measurementRate
+        print "maximum range has been set to ", self.system_configuration.maximumRange
+        print "metric data reporting has been set to ", bool(self.system_configuration.metric)

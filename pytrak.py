@@ -19,6 +19,9 @@ control.initialize(exp)
 trakstar = TrakSTARInterface()
 stimuli.TextLine(text="Initialize TrakSTAR").present()
 trakstar.initialize()
+trakstar.SetSystemConfiguration(measurementRate=25, maxRange=72,
+                                metric=False)
+
 stimuli.TextLine(text="Press key to start recording").present()
 exp.keyboard.wait()
 
