@@ -129,6 +129,7 @@ class UDPConnection(object):
         self.send(UDPConnection.UNCONNECT)
         self.peer_ip = None
 
+    @property
     def is_connected(self):
         return self.peer_ip is not None
 
@@ -141,3 +142,18 @@ class UDPConnection(object):
            self.wait_input(UDPConnection.COMMAND_REPLY, duration=timeout):
             return (True, (time()-start)*1000)
         return (False, None)
+
+    def clear_receive_buffer(self):
+        data = ""
+        while data is not None:
+            data = self.poll()
+
+    def poll_last_data(self):
+        """polls all data and returns only the last one
+        return None if not data found"""
+        rtn = None
+        tmp = self.udp.poll()
+        while tmp is not None:
+            rtn = tmp
+            tmp = self.udp.poll()
+        return rtn

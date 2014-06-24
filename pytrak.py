@@ -16,6 +16,7 @@ exp = design.Experiment()
 exp.set_log_level(0)
 control.initialize(exp)
 
+
 trakstar = TrakSTARInterface()
 stimuli.TextLine(text="Initialize TrakSTAR").present()
 trakstar.initialize()
@@ -66,13 +67,20 @@ trakstar.open_data_file(filename="test_recording", directory="data",
                       suffix = ".csv", time_stamp_filename=True,
                        write_angles=False, write_quality=True)
 
+#wait for connection
+while not trakstar.udp.is_connected:
+    trakstar.udp.poll()
+
 key = None
 cnt = 0
 exp.keyboard.clear()
 exp.clock.reset_stopwatch()
+
+udp.clear_input_buffer()
 while key is None:
     cnt += 1
     data = trakstar.get_synchronous_data_dict()
+
     for sensor in trakstar.attached_sensors:
         history[sensor].update(data[sensor][:3])
 

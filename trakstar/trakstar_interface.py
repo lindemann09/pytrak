@@ -9,6 +9,7 @@ import ctypes
 import time
 import atexit
 import atc3dg_functions as api
+from udp_connection import UDPConnection
 
 class TrakSTARInterface(object):
 
@@ -20,7 +21,9 @@ class TrakSTARInterface(object):
         self._file = None
         self._write_quality = None
         self._write_angles = None
+        self._write_udp = None
         self.system_configuration = None
+        self.udp = UDPConnection()
         atexit.register(self.close_data_file)
 
     def __del__(self):
@@ -37,10 +40,11 @@ class TrakSTARInterface(object):
 
     def open_data_file(self, filename, directory="data", suffix = ".csv",
                        time_stamp_filename=True, write_angles=False,
-                       write_quality=False):
+                       write_quality=False, write_udp=True):
         """if data file is open, data will be recorded"""
         self._write_angles = write_angles
         self._write_quality = write_quality
+        self._write_udp = write_udp
         if not os.path.isdir(directory):
             os.mkdir(directory)
         self.close_data_file()
@@ -59,6 +63,9 @@ class TrakSTARInterface(object):
             varnames += ",a,e,r"
         if write_quality:
             varnames += ",quality"
+        if write_udp:
+            varnames += ",udp"
+
         self._file.write(varnames + "\n")
 
     def close_data_file(self):
@@ -122,7 +129,8 @@ class TrakSTARInterface(object):
 
 
     @staticmethod
-    def data2string(data_dict, angles=False, quality=False, times=True):
+    def data2string(data_dict, angles=False, quality=False, times=True,
+            udp=True):
         txt = ""
         for sensor in range(4):
             if data_dict.has_key(sensor):
@@ -136,6 +144,9 @@ class TrakSTARInterface(object):
                                     data_dict[sensor][4], data_dict[sensor][5])
                 if quality:
                     txt = txt + ",{0}".format(data_dict[sensor][6])
+                if udp:
+                    txt = txt + ",{0}".format(data_dict["udp"])
+
                 txt = txt + "\n"
         return txt[:-1]
 
@@ -143,11 +154,15 @@ class TrakSTARInterface(object):
         """polling data"""
         error_code = api.GetSynchronousRecord(api.ALL_SENSORS,
                                     self._precord, 4 * 1 * 64)
+        time = int((self._record.time0 - self.init_time) * 1000)
         if error_code!=0:
             self._error_handler(error_code)
+
+        udp_data = self.udp.poll_last_data()
+
         # convert2data_dict
         d = {}
-        d["time"] = int((self._record.time0 - self.init_time) * 1000)
+        d["time"] = time
         if 0 in self.attached_sensors:
             d[0] = [self._record.x0, self._record.y0, self._record.z0,
                    self._record.a0, self._record.e0, self._record.r0,
@@ -164,11 +179,13 @@ class TrakSTARInterface(object):
             d[3] = [self._record.x3, self._record.y3, self._record.z3,
                    self._record.a3, self._record.e3, self._record.r3,
                     self._record.quality3]
+        d["udp"] = udp_data
 
         if self._file is not None:
             self._file.write(TrakSTARInterface.data2string(d,
                         angles = self._write_angles,
-                        quality = self._write_quality) + "\n")
+                        quality = self._write_quality,
+                        udp = self._write_udp) + "\n")
 
         return d
 
