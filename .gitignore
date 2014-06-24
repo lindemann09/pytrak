@@ -25,6 +25,8 @@ var/
 .installed.cfg
 *.egg
 
+#vim
+*.swp
 
 # Mr Developer
 .mr.developer.cfg

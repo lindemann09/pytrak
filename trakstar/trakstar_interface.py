@@ -2,7 +2,7 @@
 
 __author__ = 'Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>,\
 Raphael Wallroth <>'
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 import os
 import ctypes
@@ -10,28 +10,27 @@ import time
 import atexit
 import atc3dg_functions as api
 
-
 class TrakSTARInterface(object):
 
     def __init__(self):
         self._record = api.DOUBLE_POSITION_ANGLES_TIME_Q_RECORD_AllSensors_Four()
         self._precord = ctypes.pointer(self._record)
-        self.system_configuration = None
         self.attached_sensors = None
         self.init_time = None
         self._file = None
         self._write_quality = None
         self._write_angles = None
+        self.system_configuration = None
         atexit.register(self.close_data_file)
-        
+
     def __del__(self):
         self.close(ignore_error=True)
-    
+
     def close(self, ignore_error=False):
         self.close_data_file()
-        self.system_configuration = None
         self.attached_sensors = None
         self.init_time = None
+        self.system_configuration = None
         error_code = api.CloseBIRDSystem()
         if error_code!=0 and not ignore_error:
             self.error_handler(error_code)
@@ -61,12 +60,12 @@ class TrakSTARInterface(object):
         if write_quality:
             varnames += ",quality"
         self._file.write(varnames + "\n")
-        
+
     def close_data_file(self):
         """ close the file"""
         if self._file is not None:
             self._file.close()
-    
+
     def initialize(self):
         if self.is_init():
             return
@@ -74,17 +73,13 @@ class TrakSTARInterface(object):
         error_code = api.InitializeBIRDSystem()
         if error_code!=0:
             self._error_handler(error_code)
-            
+
         transmitter_id = ctypes.c_ushort(0)
         api.SetSystemParameter(api.SystemParameterType.SELECT_TRANSMITTER,
                            ctypes.pointer(transmitter_id), 2)
 
         # read in System configuration
-        self.system_configuration = api.SYSTEM_CONFIGURATION()
-        psys_conf = ctypes.pointer(self.system_configuration)
-        api.GetBIRDSystemConfiguration(psys_conf)
-        print "n sensors ", self.system_configuration.numberSensors
-        print "n boards ", self.system_configuration.numberBoards
+        self.update_system_configuration(print_configuration = True)
 
         # get attached sensors
         sensor_conf = api.SENSOR_CONFIGURATION()
@@ -94,36 +89,37 @@ class TrakSTARInterface(object):
             error_code = api.GetSensorConfiguration(ctypes.c_ushort(cnt),
                                         psensor_conf)
             print sensor_conf.attached, sensor_conf.serialNumber
-            
+
             if error_code!=0:
                 self._error_handler(error_code)
             elif sensor_conf.attached:
-                attached_sensors.append(cnt)       
+                attached_sensors.append(cnt)
         self.attached_sensors = attached_sensors
         print "attached sensors", self.attached_sensors
 
         # set sensors
         for x in range(self.system_configuration.numberSensors):
             api.SetSensorParameter(ctypes.c_ushort(x),
-                            api.SensorParameterType.DATA_FORMAT,
-                            ctypes.pointer(api.DataFormatType.DOUBLE_POSITION_ANGLES_TIME_Q),
-                            4)
+                api.SensorParameterType.DATA_FORMAT,
+                ctypes.pointer(api.DataFormatType.DOUBLE_POSITION_ANGLES_TIME_Q),
+                4)
         self.init_time = time.time()
         print "Done."
 
     def is_init(self):
+        """Returns if trak ist initialized"""
         return (self.init_time is not None)
-       
+
     def _error_handler(self, error_code):
         print "Error: ", error_code
         txt =  " " * 500
         pbuffer = ctypes.c_char_p(txt)
-        api.GetErrorText(error_code, pbuffer, ctypes.c_int(500), 
+        api.GetErrorText(error_code, pbuffer, ctypes.c_int(500),
                             api.MessageType.VERBOSE_MESSAGE)
         print pbuffer.value
         self.close(ignore_error=True)
         raise RuntimeError("trakSTAR Error")
-        
+
 
     @staticmethod
     def data2string(data_dict, angles=False, quality=False, times=True):
@@ -132,19 +128,21 @@ class TrakSTARInterface(object):
             if data_dict.has_key(sensor):
                 if times:
                     txt = txt + "{0},".format(data_dict["time"])
-                txt = txt + "%d,%.4f,%.4f,%.4f" % (sensor+1, data_dict[sensor][0],
-                                         data_dict[sensor][1], data_dict[sensor][2])
+                txt = txt + "%d,%.4f,%.4f,%.4f" % \
+                                    (sensor+1, data_dict[sensor][0],
+                                    data_dict[sensor][1], data_dict[sensor][2])
                 if angles:
                     txt = txt + ",%.4f,%.4f,%.4f" % (data_dict[sensor][3],
-                                                 data_dict[sensor][4], data_dict[sensor][5])
+                                    data_dict[sensor][4], data_dict[sensor][5])
                 if quality:
-                    txt = txt + ",{0}".format(data_dict[sensor][6])    
-                txt = txt + "\n"          
+                    txt = txt + ",{0}".format(data_dict[sensor][6])
+                txt = txt + "\n"
         return txt[:-1]
 
-    def getSynchronousRecordDataDict(self):
+    def get_synchronous_data_dict(self):
+        """polling data"""
         error_code = api.GetSynchronousRecord(api.ALL_SENSORS,
-                                    self._precord, 4 * 1 * 64)     
+                                    self._precord, 4 * 1 * 64)
         if error_code!=0:
             self._error_handler(error_code)
         # convert2data_dict
@@ -174,47 +172,54 @@ class TrakSTARInterface(object):
 
         return d
 
-    def SetSystemConfiguration(self, measurementRate=None, maxRange=None,
-                               metric=True, PowerLine=None):
-        """
-        measurementRate in Hz: 20.0 < rate < 255.0
-        maxRange: valid values (in inches): 36.0, 72.0, 144.0
-        metric: True (data in mm) or False (data in inches)
-        PowerLine in Hz: 50.0 or 60.0 (frequency of the AC power source)
-        """
-        if measurementRate is None:
-            measurementRate = 80
-        self.mR = ctypes.c_double(measurementRate)
-        if maxRange is None:
-            maxRange = 36
-        self.maxRange = ctypes.c_double(maxRange)
-        self.metric = ctypes.c_int(metric)
-        if PowerLine is None:
-            PowerLine = 60
-        self.PowerLine = ctypes.c_double(PowerLine)
-        
-        error_code = api.SetSystemParameter(api.SystemParameterType.MEASUREMENT_RATE,
-                           ctypes.pointer(self.mR), 8)
-        if error_code!=0:
-            self._error_handler(error_code)        
-        error_code = api.SetSystemParameter(api.SystemParameterType.MAXIMUM_RANGE,
-                           ctypes.pointer(self.maxRange), 8)        
-        if error_code!=0:
-            self._error_handler(error_code)        
-        error_code = api.SetSystemParameter(api.SystemParameterType.METRIC,
-                           ctypes.pointer(self.metric), 4)
-        if error_code!=0:
-            self._error_handler(error_code)        
-        error_code = api.SetSystemParameter(api.SystemParameterType.POWER_LINE_FREQUENCY,
-                           ctypes.pointer(self.PowerLine), 8)
-        if error_code!=0:
-            self._error_handler(error_code)        
-            
-        self.system_configuration = api.SYSTEM_CONFIGURATION()
-        psys_conf = ctypes.pointer(self.system_configuration)
+    def update_system_configuration(self, print_configuration = True):
+        sysconf = api.SYSTEM_CONFIGURATION()
+        psys_conf = ctypes.pointer(sysconf)
         api.GetBIRDSystemConfiguration(psys_conf)
-        print "measurement rate has been set to ", self.system_configuration.measurementRate, " Hz."
-        print "maximum range has been set to ", self.system_configuration.maximumRange, " inches."
-        print "metric data reporting has been set to ", bool(self.system_configuration.metric)
-        print "power line frequency has been set to ", self.system_configuration.powerLineFrequency, " Hz."
-        return bool(self.metric)
+        if print_config:
+            print "n sensors ", sysconf.numberSensors
+            print "n boards ", sysconf.numberBoards
+            print "measurement rate:", sysconf.sampling_rate, " Hz."
+            print "maximum range:", sysconf.maximumRange, " inches."
+            print "metric data reporting: ", bool(sysconf.metric)
+            print "power line frequency: ", sysconf.powerLineFrequency, " Hz."
+        self.system_configuration  = sysconf
+
+
+    def set_system_configuration(self, sampling_rate=80_co
+                                max_range=36, metric=True, power_line=60,
+                               print_configuration = True):
+        """
+        sampling_rate in Hz: 20.0 < rate < 255.0
+        max_range: valid values (in inches): 36.0, 72.0, 144.0
+        metric: True (data in mm) or False (data in inches)
+        power_line in Hz: 50.0 or 60.0 (frequency of the AC power source)
+        """
+
+        print "setting system configuration"
+
+        mR = ctypes.c_double(sampling_rate)
+        max_range = ctypes.c_double(max_range)
+        metric = ctypes.c_int(metric)
+        power_line = ctypes.c_double(power_line)
+
+        error_code = api.SetSystemParameter(
+                            api.SystemParameterType.MEASUREMENT_RATE,
+                            ctypes.pointer(mR), 8)
+        if error_code!=0:
+            self._error_handler(error_code)
+        error_code = api.SetSystemParameter(
+                            api.SystemParameterType.MAXIMUM_RANGE,
+                            ctypes.pointer(max_range), 8)
+        if error_code!=0:
+            self._error_handler(error_code)
+        error_code = api.SetSystemParameter(api.SystemParameterType.METRIC,
+                           ctypes.pointer(metric), 4)
+        if error_code!=0:
+            self._error_handler(error_code)
+        error_code = api.SetSystemParameter(
+                                api.SystemParameterType.POWER_LINE_FREQUENCY,
+        if error_code!=0:
+            self._error_handler(error_code)
+
+        self.update_system_configuration(print_configuration=print_configuration)
