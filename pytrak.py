@@ -25,7 +25,7 @@ trakstar.set_system_configuration(sampling_rate=50,
 stimuli.TextLine(text="Press key to start recording").present()
 exp.keyboard.wait()
 
-sensors = trakstar.attached_sensors
+# make circles and history
 colours = { 0: misc.constants.C_RED,
             1: misc.constants.C_GREEN,
             2: misc.constants.C_YELLOW,
@@ -33,12 +33,34 @@ colours = { 0: misc.constants.C_RED,
 circle_diameter = 40
 circles = {}
 history = {}
-canvas = stimuli.BlankScreen()
-for sensor in sensors:
+for sensor in trakstar.attached_sensors:
     circles[sensor] = stimuli.Circle(circle_diameter, colour=colours[sensor])
     stimuli.TextLine(str(sensor+1), text_size=circle_diameter/2, text_bold=True,
                      text_colour=misc.constants.C_WHITE).plot(circles[sensor])
     history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
+
+
+def update_screen(trakstar, circles, history):
+    for sensor in trakstar.attached_sensors:
+        if not trackstar.system_configuration.metric:
+            circles[sensor].position = (
+                    int(round(history[sensor].moving_average[1]*10)),
+                    int(round(history[sensor].moving_average[0]*10)))
+        else:
+            circles[sensor].position = (history[sensor].moving_average[1]/2,
+                                        history[sensor].moving_average[0]/2)
+
+    canvas = stimuli.BlankScreen()
+    sample_rate = 1000 * cnt / float(exp.clock.stopwatch_time)
+    txt_box = stimuli.TextBox(text = "{1}\n".format(cnt, sample_rate) +
+                    TrakSTARInterface.data2string(data, times=False),
+                    text_justification = 0,
+                    size = (400, 300), text_size=20)
+    for circle in circles.values():
+        circle.plot(canvas)
+    txt_box.plot(canvas)
+    canvas.present()
+
 
 trakstar.open_data_file(filename="test_recording", directory="data",
                       suffix = ".csv", time_stamp_filename=True,
@@ -51,30 +73,11 @@ exp.clock.reset_stopwatch()
 while key is None:
     cnt += 1
     data = trakstar.get_synchronous_data_dict()
-    for sensor in sensors:
+    for sensor in trakstar.attached_sensors:
         history[sensor].update(data[sensor][:3])
 
     if cnt % 30 == 1:
-        for sensor in sensors:
-            if not trackstar.system_configuration.metric:
-                circles[sensor].position = (
-                        int(round(history[sensor].moving_average[1]*10)),
-                        int(round(history[sensor].moving_average[0]*10)))
-            else:
-                circles[sensor].position = (history[sensor].moving_average[1]/2,
-                                            history[sensor].moving_average[0]/2)
-
-        canvas.clear_surface()
-        sample_rate = 1000 * cnt / float(exp.clock.stopwatch_time)
-        txt_box = stimuli.TextBox(text = "{1}\n".format(cnt, sample_rate) +
-                        TrakSTARInterface.data2string(data, times=False),
-                        text_justification = 0,
-                        size = (400, 300), text_size=20)
-        for circle in circles.values():
-            circle.plot(canvas)
-        txt_box.plot(canvas)
-        canvas.present()
-
+        update_screen(trakstar, circles, history)
     key = exp.keyboard.check()
 
 trakstar.close_data_file()
