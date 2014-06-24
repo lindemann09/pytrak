@@ -19,11 +19,9 @@ control.initialize(exp)
 trakstar = TrakSTARInterface()
 stimuli.TextLine(text="Initialize TrakSTAR").present()
 trakstar.initialize()
-metric = trakstar.set_system_configuration(sampling_rate=50,
+trakstar.set_system_configuration(sampling_rate=50,
                                     max_range=72,
                                     print_configuration = True)
-#metric = trakstar.set_system_configuration()
-
 stimuli.TextLine(text="Press key to start recording").present()
 exp.keyboard.wait()
 
@@ -58,13 +56,14 @@ while key is None:
 
     if cnt % 30 == 1:
         for sensor in sensors:
-            if not metric:
-                circles[sensor].position = (int(round(history[sensor].moving_average[1]*10)),
-                                            int(round(history[sensor].moving_average[0]*10)))
+            if not trackstar.system_configuration.metric:
+                circles[sensor].position = (
+                        int(round(history[sensor].moving_average[1]*10)),
+                        int(round(history[sensor].moving_average[0]*10)))
             else:
                 circles[sensor].position = (history[sensor].moving_average[1]/2,
                                             history[sensor].moving_average[0]/2)
-                
+
         canvas.clear_surface()
         sample_rate = 1000 * cnt / float(exp.clock.stopwatch_time)
         txt_box = stimuli.TextBox(text = "{1}\n".format(cnt, sample_rate) +
@@ -75,12 +74,10 @@ while key is None:
             circle.plot(canvas)
         txt_box.plot(canvas)
         canvas.present()
-        
+
     key = exp.keyboard.check()
-    
+
 trakstar.close_data_file()
 trakstar.close()
 stimuli.TextLine(text="Closing trakSTAR").present()
 control.end()
-
-

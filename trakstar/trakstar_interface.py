@@ -181,7 +181,7 @@ class TrakSTARInterface(object):
             print "n boards ", sysconf.numberBoards
             print "measurement rate:", sysconf.sampling_rate, " Hz."
             print "maximum range:", sysconf.maximumRange, " inches."
-            print "metric data reporting: ", bool(sysconf.metric)
+            print "metric data reporting: ", sysconf.metric
             print "power line frequency: ", sysconf.powerLineFrequency, " Hz."
         self.system_configuration  = sysconf
 
@@ -200,7 +200,7 @@ class TrakSTARInterface(object):
 
         mR = ctypes.c_double(sampling_rate)
         max_range = ctypes.c_double(max_range)
-        metric = ctypes.c_int(metric)
+        metric = ctypes.c_int(int(metric))
         power_line = ctypes.c_double(power_line)
 
         error_code = api.SetSystemParameter(
