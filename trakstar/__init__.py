@@ -2,7 +2,7 @@
 
 __author__ = 'Raphael Wallroth <> \
 Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>'
-__version__ = 0.2
+__version__ = 0.3
 
 import atc3dg_functions as api
 from trakstar_interface import TrakSTARInterface
