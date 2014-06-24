@@ -2,7 +2,7 @@
 
 __author__ = 'Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>,\
 Raphael Wallroth <>'
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 import os
 import ctypes
@@ -20,6 +20,7 @@ class TrakSTARInterface(object):
         self._file = None
         self._write_quality = None
         self._write_angles = None
+        self.system_configuration = None
         atexit.register(self.close_data_file)
 
     def __del__(self):
@@ -29,6 +30,7 @@ class TrakSTARInterface(object):
         self.close_data_file()
         self.attached_sensors = None
         self.init_time = None
+        self.system_configuration = None
         error_code = api.CloseBIRDSystem()
         if error_code!=0 and not ignore_error:
             self.error_handler(error_code)
@@ -77,15 +79,13 @@ class TrakSTARInterface(object):
                            ctypes.pointer(transmitter_id), 2)
 
         # read in System configuration
-        sys_conf = self.get_system_configuration()
-        print "n sensors ", sys_conf.numberSensors
-        print "n boards ", sys_conf.numberBoards
+        self.update_system_configuration(print_configuration = True)
 
         # get attached sensors
         sensor_conf = api.SENSOR_CONFIGURATION()
         psensor_conf = ctypes.pointer(sensor_conf)
         attached_sensors = []
-        for cnt in range(sys_conf.numberSensors):
+        for cnt in range(self.system_configuration.numberSensors):
             error_code = api.GetSensorConfiguration(ctypes.c_ushort(cnt),
                                         psensor_conf)
             print sensor_conf.attached, sensor_conf.serialNumber
@@ -98,7 +98,7 @@ class TrakSTARInterface(object):
         print "attached sensors", self.attached_sensors
 
         # set sensors
-        for x in range(sys_conf.numberSensors):
+        for x in range(self.system_configuration.numberSensors):
             api.SetSensorParameter(ctypes.c_ushort(x),
                 api.SensorParameterType.DATA_FORMAT,
                 ctypes.pointer(api.DataFormatType.DOUBLE_POSITION_ANGLES_TIME_Q),
@@ -172,20 +172,31 @@ class TrakSTARInterface(object):
 
         return d
 
-    def get_system_configuration(self):
-        system_configuration = api.SYSTEM_CONFIGURATION()
-        psys_conf = ctypes.pointer(system_configuration)
+    def update_system_configuration(self, print_configuration = True):
+        sysconf = api.SYSTEM_CONFIGURATION()
+        psys_conf = ctypes.pointer(sysconf)
         api.GetBIRDSystemConfiguration(psys_conf)
-        return system_configuration
+        if print_config:
+            print "n sensors ", sysconf.numberSensors
+            print "n boards ", sysconf.numberBoards
+            print "measurement rate:", sysconf.sampling_rate, " Hz."
+            print "maximum range:", sysconf.maximumRange, " inches."
+            print "metric data reporting: ", bool(sysconf.metric)
+            print "power line frequency: ", sysconf.powerLineFrequency, " Hz."
+        self.system_configuration  = sysconf
 
-    def set_system_configuration(self, sampling_rate=80, max_range=36,
-                               metric=True, power_line=60):
+
+    def set_system_configuration(self, sampling_rate=80_co
+                                max_range=36, metric=True, power_line=60,
+                               print_configuration = True):
         """
         sampling_rate in Hz: 20.0 < rate < 255.0
         max_range: valid values (in inches): 36.0, 72.0, 144.0
         metric: True (data in mm) or False (data in inches)
         power_line in Hz: 50.0 or 60.0 (frequency of the AC power source)
         """
+
+        print "setting system configuration"
 
         mR = ctypes.c_double(sampling_rate)
         max_range = ctypes.c_double(max_range)
@@ -211,10 +222,4 @@ class TrakSTARInterface(object):
         if error_code!=0:
             self._error_handler(error_code)
 
-
-        sysconf = self.get_system_configuration()
-        print "setting system configuration"
-        print "measurement rate:", sysconf.sampling_rate, " Hz."
-        print "maximum range:", sysconf.maximumRange, " inches."
-        print "metric data reporting: ", bool(sysconf.metric)
-        print "power line frequency: ", sysconf.powerLineFrequency, " Hz."
+        self.update_system_configuration(print_configuration=print_configuration)

@@ -19,8 +19,9 @@ control.initialize(exp)
 trakstar = TrakSTARInterface()
 stimuli.TextLine(text="Initialize TrakSTAR").present()
 trakstar.initialize()
-metric = trakstar.set_system_configuration(sampling_rate=50, 
-                                    max_range=72)
+metric = trakstar.set_system_configuration(sampling_rate=50,
+                                    max_range=72,
+                                    print_configuration = True)
 #metric = trakstar.set_system_configuration()
 
 stimuli.TextLine(text="Press key to start recording").present()
