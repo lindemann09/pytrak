@@ -19,8 +19,9 @@ control.initialize(exp)
 trakstar = TrakSTARInterface()
 stimuli.TextLine(text="Initialize TrakSTAR").present()
 trakstar.initialize()
-metric = trakstar.SetSystemConfiguration(measurementRate=50, maxRange=72)
-#metric = trakstar.SetSystemConfiguration()
+metric = trakstar.set_system_configuration(sampling_rate=50, 
+                                    max_range=72)
+#metric = trakstar.set_system_configuration()
 
 stimuli.TextLine(text="Press key to start recording").present()
 exp.keyboard.wait()
@@ -50,7 +51,7 @@ exp.keyboard.clear()
 exp.clock.reset_stopwatch()
 while key is None:
     cnt += 1
-    data = trakstar.getSynchronousRecordDataDict()
+    data = trakstar.get_synchronous_data_dict()
     for sensor in sensors:
         history[sensor].update(data[sensor][:3])
 
