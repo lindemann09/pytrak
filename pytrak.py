@@ -15,6 +15,7 @@ trakstar.set_system_configuration(measurement_rate=50,
 
 #expyriment
 control.defaults.initialize_delay = 0
+control.defaults.pause_key = None
 control.defaults.window_mode = True
 control.defaults.fast_quit = True
 control.defaults.open_gl = False
@@ -26,6 +27,7 @@ stimuli.TextLine(text="Press key to start recording").present()
 exp.keyboard.wait()
 
 # make circles and history
+show_circles = False
 colours = { 4: misc.constants.C_RED,
             1: misc.constants.C_GREEN,
             2: misc.constants.C_YELLOW,
@@ -40,60 +42,81 @@ for sensor in trakstar.attached_sensors:
     history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
 
 
-def update_screen(trakstar, circles, history):
-    for sensor in trakstar.attached_sensors:
-        if not trakstar.system_configuration.metric:
-            circles[sensor].position = (
+def update_screen(trakstar, circles, history, show_circles):
+    if show_circles:
+        for sensor in trakstar.attached_sensors:
+            if not trakstar.system_configuration.metric:
+                circles[sensor].position = (
                     int(round(history[sensor].moving_average[1]*10)),
                     int(round(history[sensor].moving_average[0]*10)))
-        else:
-            circles[sensor].position = (history[sensor].moving_average[1]/2,
+            else:
+                circles[sensor].position = (history[sensor].moving_average[1]/2,
                                         history[sensor].moving_average[0]/2)
 
     canvas = stimuli.BlankScreen()
-    txt_box = stimuli.TextBox(text = "{0}\n".format(cnt) +
+    txt_box = stimuli.TextBox(text = "{0}    {1}\n".format(filename, cnt) +
                     TrakSTARInterface.data2string(data, times=False),
                     text_justification = 0,
                     size = (400, 300), text_size=20)
-    for circle in circles.values():
-        circle.plot(canvas)
+    if show_circles:
+        for circle in circles.values():
+            circle.plot(canvas)
     txt_box.plot(canvas)
     canvas.present()
 
 
-trakstar.open_data_file(filename="test_recording", directory="data",
-                      suffix = ".csv", time_stamp_filename=True,
-                       write_angles=False, write_quality=True)
 
 # wait for connection
-if False:
+if True:
     trakstar.udp.poll_last_data() # clear buffer
     while not trakstar.udp.is_connected:
-        stimuli.TextLine(text="Wating for connection").present()
+        stimuli.TextLine(text="Waiting for connection").present()
         exp.clock.wait(100)
         trakstar.udp.poll()
         exp.keyboard.check()
+    filename = None
+    while filename is None:
+        # required command filename: <filename>
+        stimuli.TextLine(text="Waiting for filename").present()
+        exp.clock.wait(100)
+        d = trakstar.udp.poll()
+        if d is not None and d.startswith("filename"):
+            try:
+                _, filename = d.split(":")
+                filename = filename.strip()         
+            except:
+                filename = None
+else:
+    filename = "test_recording"
+trakstar.open_data_file(filename=filename, directory="data",
+                      suffix = ".csv", time_stamp_filename=True,
+                       write_angles=False, write_quality=True)
 
-key = None
+
+pause = False
 cnt = 0
 exp.keyboard.clear()
 exp.clock.reset_stopwatch()
 
 trakstar.udp.poll_last_data()
 trakstar.reset_timer()
-while key is None:
-    cnt += 1
-    data = trakstar.get_synchronous_data_dict()
-    for sensor in trakstar.attached_sensors:
-        history[sensor].update(data[sensor][:3])
+while True:
+    if not pause:
+        cnt += 1
+        data = trakstar.get_synchronous_data_dict()
+        for sensor in trakstar.attached_sensors:
+            history[sensor].update(data[sensor][:3])
 
-    if cnt % 30 == 1:
-        update_screen(trakstar, circles, history)
-
-    if data["udp"] != "0":
-        print data["udp"]
+    if cnt % 40 == 1:
+        update_screen(trakstar, circles, history, show_circles)
 
     key = exp.keyboard.check()
+    if key == ord("c"):
+        show_circles = not(show_circles)
+    if key == ord("p"):
+        pause = not(pause)
+    elif key == ord("q"):
+        break
 
 trakstar.close_data_file()
 trakstar.close()
