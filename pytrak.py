@@ -6,7 +6,14 @@ Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>'
 __version__ = '0.1.2'
 
 
+trakstar = TrakSTARInterface()
+print "Initialize TrakSTAR"
+trakstar.initialize()
+trakstar.set_system_configuration(measurement_rate=50,
+                                    max_range=72,
+                                    print_configuration = True)
 
+#expyriment
 control.defaults.initialize_delay = 0
 control.defaults.window_mode = True
 control.defaults.fast_quit = True
@@ -15,13 +22,6 @@ control.defaults.event_logging = 0
 exp = design.Experiment()
 exp.set_log_level(0)
 control.initialize(exp)
-
-trakstar = TrakSTARInterface()
-stimuli.TextLine(text="Initialize TrakSTAR").present()
-trakstar.initialize()
-trakstar.set_system_configuration(sampling_rate=50,
-                                    max_range=72,
-                                    print_configuration = True)
 stimuli.TextLine(text="Press key to start recording").present()
 exp.keyboard.wait()
 
@@ -42,7 +42,7 @@ for sensor in trakstar.attached_sensors:
 
 def update_screen(trakstar, circles, history):
     for sensor in trakstar.attached_sensors:
-        if not trackstar.system_configuration.metric:
+        if not trakstar.system_configuration.metric:
             circles[sensor].position = (
                     int(round(history[sensor].moving_average[1]*10)),
                     int(round(history[sensor].moving_average[0]*10)))
