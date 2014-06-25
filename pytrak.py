@@ -26,7 +26,7 @@ stimuli.TextLine(text="Press key to start recording").present()
 exp.keyboard.wait()
 
 # make circles and history
-colours = { 0: misc.constants.C_RED,
+colours = { 4: misc.constants.C_RED,
             1: misc.constants.C_GREEN,
             2: misc.constants.C_YELLOW,
             3: misc.constants.C_BLUE }
@@ -35,7 +35,7 @@ circles = {}
 history = {}
 for sensor in trakstar.attached_sensors:
     circles[sensor] = stimuli.Circle(circle_diameter, colour=colours[sensor])
-    stimuli.TextLine(str(sensor+1), text_size=circle_diameter/2, text_bold=True,
+    stimuli.TextLine(str(sensor), text_size=circle_diameter/2, text_bold=True,
                      text_colour=misc.constants.C_WHITE).plot(circles[sensor])
     history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
 
@@ -51,8 +51,7 @@ def update_screen(trakstar, circles, history):
                                         history[sensor].moving_average[0]/2)
 
     canvas = stimuli.BlankScreen()
-    sample_rate = 1000 * cnt / float(exp.clock.stopwatch_time)
-    txt_box = stimuli.TextBox(text = "{1}\n".format(cnt, sample_rate) +
+    txt_box = stimuli.TextBox(text = "{0}\n".format(cnt) +
                     TrakSTARInterface.data2string(data, times=False),
                     text_justification = 0,
                     size = (400, 300), text_size=20)
@@ -66,25 +65,34 @@ trakstar.open_data_file(filename="test_recording", directory="data",
                       suffix = ".csv", time_stamp_filename=True,
                        write_angles=False, write_quality=True)
 
-#wait for connection
-while not trakstar.udp.is_connected:
-    trakstar.udp.poll()
+# wait for connection
+if False:
+    trakstar.udp.poll_last_data() # clear buffer
+    while not trakstar.udp.is_connected:
+        stimuli.TextLine(text="Wating for connection").present()
+        exp.clock.wait(100)
+        trakstar.udp.poll()
+        exp.keyboard.check()
 
 key = None
 cnt = 0
 exp.keyboard.clear()
 exp.clock.reset_stopwatch()
 
-udp.clear_input_buffer()
+trakstar.udp.poll_last_data()
+trakstar.reset_timer()
 while key is None:
     cnt += 1
     data = trakstar.get_synchronous_data_dict()
-
     for sensor in trakstar.attached_sensors:
         history[sensor].update(data[sensor][:3])
 
     if cnt % 30 == 1:
         update_screen(trakstar, circles, history)
+
+    if data["udp"] != "0":
+        print data["udp"]
+
     key = exp.keyboard.check()
 
 trakstar.close_data_file()

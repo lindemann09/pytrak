@@ -6,7 +6,7 @@ __version__ = '0.2.3'
 
 import os
 import ctypes
-import time
+from time import localtime, strftime
 import atexit
 import atc3dg_functions as api
 from udp_connection import UDPConnection
@@ -24,13 +24,14 @@ class TrakSTARInterface(object):
         self._write_udp = None
         self.system_configuration = None
         self.udp = UDPConnection()
+        print self.udp
         atexit.register(self.close)
 
     def __del__(self):
         self.close(ignore_error=True)
 
     def close(self, ignore_error=True):
-        print "closing trakstar"
+        print "* closing trakstar"
         self.close_data_file()
         self.attached_sensors = None
         self.init_time = None
@@ -52,8 +53,7 @@ class TrakSTARInterface(object):
 
         fullname = directory +  os.path.sep + filename
         if time_stamp_filename:
-            fullname = fullname +"_" + \
-                     time.strftime("%Y%m%d%H%M", time.localtime())
+            fullname = fullname +"_" + strftime("%Y%m%d%H%M", localtime())
         fullname = fullname + suffix
         self._file = open(fullname, 'w+')
         self._file.write("# Motion tracking data recorded with " +\
@@ -77,7 +77,7 @@ class TrakSTARInterface(object):
     def initialize(self):
         if self.is_init():
             return
-        print "Initializing trakstar ..."
+        print "* Initializing trakstar ..."
         error_code = api.InitializeBIRDSystem()
         if error_code!=0:
             self._error_handler(error_code)
@@ -87,23 +87,7 @@ class TrakSTARInterface(object):
                            ctypes.pointer(transmitter_id), 2)
 
         # read in System configuration
-        self.read_system_configuration(print_configuration = True)
-
-        # get attached sensors
-        sensor_conf = api.SENSOR_CONFIGURATION()
-        psensor_conf = ctypes.pointer(sensor_conf)
-        attached_sensors = []
-        for cnt in range(self.system_configuration.numberSensors):
-            error_code = api.GetSensorConfiguration(ctypes.c_ushort(cnt),
-                                        psensor_conf)
-            print sensor_conf.attached, sensor_conf.serialNumber
-
-            if error_code!=0:
-                self._error_handler(error_code)
-            elif sensor_conf.attached:
-                attached_sensors.append(cnt)
-        self.attached_sensors = attached_sensors
-        print "attached sensors", self.attached_sensors
+        self.read_configurations(print_configuration = True)
 
         # set sensors
         for x in range(self.system_configuration.numberSensors):
@@ -111,22 +95,27 @@ class TrakSTARInterface(object):
                 api.SensorParameterType.DATA_FORMAT,
                 ctypes.pointer(api.DataFormatType.DOUBLE_POSITION_ANGLES_TIME_Q),
                 4)
-        self.init_time = time.time()
+        self.reset_timer()
         print "Done."
 
+    def reset_timer(self):
+        self.init_time = 0
+        d = self.get_synchronous_data_dict(write_data_file=False)
+        self.init_time = d["time"] / float(1000)
+        
     def is_init(self):
         """Returns if trak ist initialized"""
         return (self.init_time is not None)
 
     def _error_handler(self, error_code):
-        print "Error: ", error_code
+        print "** Error: ", error_code
         txt =  " " * 500
         pbuffer = ctypes.c_char_p(txt)
         api.GetErrorText(error_code, pbuffer, ctypes.c_int(500),
                             api.MessageType.VERBOSE_MESSAGE)
         print pbuffer.value
         self.close(ignore_error=True)
-        raise RuntimeError("trakSTAR Error")
+        raise RuntimeError("** trakSTAR Error")
 
 
     @staticmethod
@@ -138,7 +127,7 @@ class TrakSTARInterface(object):
                 if times:
                     txt = txt + "{0},".format(data_dict["time"])
                 txt = txt + "%d,%.4f,%.4f,%.4f" % \
-                                    (sensor+1, data_dict[sensor][0],
+                                    (sensor, data_dict[sensor][0],
                                     data_dict[sensor][1], data_dict[sensor][2])
                 if angles:
                     txt = txt + ",%.4f,%.4f,%.4f" % (data_dict[sensor][3],
@@ -151,7 +140,7 @@ class TrakSTARInterface(object):
                 txt = txt + "\n"
         return txt[:-1]
 
-    def get_synchronous_data_dict(self):
+    def get_synchronous_data_dict(self, write_data_file=True):
         """polling data"""
         error_code = api.GetSynchronousRecord(api.ALL_SENSORS,
                                     self._precord, 4 * 1 * 64)
@@ -164,25 +153,29 @@ class TrakSTARInterface(object):
         # convert2data_dict
         d = {}
         d["time"] = time
-        if 0 in self.attached_sensors:
-            d[0] = [self._record.x0, self._record.y0, self._record.z0,
+        if 1 in self.attached_sensors:
+            d[1] = [self._record.x0, self._record.y0, self._record.z0,
                    self._record.a0, self._record.e0, self._record.r0,
                    self._record.quality0]
-        if 1 in self.attached_sensors:
-            d[1] = [self._record.x1, self._record.y1, self._record.z1,
+        if 2 in self.attached_sensors:
+            d[2] = [self._record.x1, self._record.y1, self._record.z1,
                    self._record.a1, self._record.e1, self._record.r1,
                     self._record.quality1]
-        if 2 in self.attached_sensors:
-            d[2] = [self._record.x2, self._record.y2, self._record.z2,
+        if 3 in self.attached_sensors:
+            d[3] = [self._record.x2, self._record.y2, self._record.z2,
                     self._record.a2, self._record.e2, self._record.r2,
                     self._record.quality2]
-        if 3 in self.attached_sensors:
-            d[3] = [self._record.x3, self._record.y3, self._record.z3,
+        if 4 in self.attached_sensors:
+            d[4] = [self._record.x3, self._record.y3, self._record.z3,
                    self._record.a3, self._record.e3, self._record.r3,
                     self._record.quality3]
-        d["udp"] = udp_data
 
-        if self._file is not None:
+        if udp_data is None:
+            d["udp"] = "0"
+        else:
+            d["udp"] = udp_data
+
+        if self._file is not None and write_data_file:
             self._file.write(TrakSTARInterface.data2string(d,
                         angles = self._write_angles,
                         quality = self._write_quality,
@@ -190,19 +183,34 @@ class TrakSTARInterface(object):
 
         return d
 
-    def read_system_configuration(self, print_configuration = True):
-        """read system configuration from device"""
+    def read_configurations(self, print_configuration = True):
+        """read system and sensor configuration from device"""
+
+        #system configuration
         sysconf = api.SYSTEM_CONFIGURATION()
         psys_conf = ctypes.pointer(sysconf)
         api.GetBIRDSystemConfiguration(psys_conf)
-        if print_configuration:
-            print "n sensors ", sysconf.numberSensors
-            print "n boards ", sysconf.numberBoards
-            print "measurement rate:", sysconf.measurementRate, " Hz."
-            print "maximum range:", sysconf.maximumRange, " inches."
-            print "metric data reporting: ", sysconf.metric
-            print "power line frequency: ", sysconf.powerLineFrequency, " Hz."
         self.system_configuration  = sysconf
+
+        # read attached sensors config
+        sensor_conf = api.SENSOR_CONFIGURATION()
+        psensor_conf = ctypes.pointer(sensor_conf)
+        attached_sensors = []
+        for cnt in range(self.system_configuration.numberSensors):
+            error_code = api.GetSensorConfiguration(ctypes.c_ushort(cnt),
+                                        psensor_conf)
+            if error_code!=0:
+                self._error_handler(error_code)
+            elif sensor_conf.attached:
+                attached_sensors.append(cnt+1)
+        self.attached_sensors = attached_sensors
+
+        if print_configuration:
+            print "  attached sensors", self.attached_sensors
+            print "  measurement rate:", sysconf.measurementRate, " Hz."
+            print "  maximum range:", sysconf.maximumRange, " inches."
+            print "  metric data reporting: ", sysconf.metric
+            print "  power line frequency: ", sysconf.powerLineFrequency, " Hz."
 
 
     def set_system_configuration(self, measurement_rate=80,
@@ -215,7 +223,7 @@ class TrakSTARInterface(object):
         power_line in Hz: 50.0 or 60.0 (frequency of the AC power source)
         """
 
-        print "setting system configuration"
+        print "* setting system configuration"
 
         mR = ctypes.c_double(measurement_rate)
         max_range = ctypes.c_double(max_range)
@@ -242,4 +250,4 @@ class TrakSTARInterface(object):
         if error_code!=0:
             self._error_handler(error_code)
 
-        self.read_system_configuration(print_configuration=print_configuration)
+        self.read_configurations(print_configuration=print_configuration)

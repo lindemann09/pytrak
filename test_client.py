@@ -1,7 +1,7 @@
 # test client udo connection
 from expyriment import control, stimuli, io, misc
 from expyriment.misc import Clock
-from udp_connection import UDPConnection
+from trakstar import UDPConnection
 
 # t : test connect
 # q : quit client
@@ -14,7 +14,7 @@ exp = control.initialize()
 udp = UDPConnection()
 print udp
 
-if not udp.connect_peer("192.168.1.107"):  # 41.89.98.24
+if not udp.connect_peer("169.254.1.1"):  # 41.89.98.24
     print "error connecting to peer"
     exit()
 
@@ -35,7 +35,9 @@ while True:
         times = []
         for cnt in range(20):
             stimuli.TextLine("ping test " + str(cnt)).present()
+            c.reset_stopwatch()
             ok, time = udp.ping()
+            print c.stopwatch_time
             times.append(time)
             c.wait(100)
         stimuli.BlankScreen().present()

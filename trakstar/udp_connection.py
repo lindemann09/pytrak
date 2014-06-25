@@ -86,7 +86,6 @@ class UDPConnection(object):
             self.send(UDPConnection.COMMAND_REPLY)
         elif data == self.UNCONNECT:
             self.unconnect_peer()
-
         return data
 
     def send(self, data, timeout=1.0):
@@ -140,7 +139,7 @@ class UDPConnection(object):
         start = time()
         if self.send(UDPConnection.PING, timeout = timeout) and \
            self.wait_input(UDPConnection.COMMAND_REPLY, duration=timeout):
-            return (True, (time()-start)*1000)
+            return (True, ((time()-start)*1000))
         return (False, None)
 
     def clear_receive_buffer(self):
@@ -152,8 +151,8 @@ class UDPConnection(object):
         """polls all data and returns only the last one
         return None if not data found"""
         rtn = None
-        tmp = self.udp.poll()
+        tmp = self.poll()
         while tmp is not None:
             rtn = tmp
-            tmp = self.udp.poll()
+            tmp = self.poll()
         return rtn

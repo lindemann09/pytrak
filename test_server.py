@@ -1,6 +1,6 @@
 ## Server
 import time
-from udp_connection import UDPConnection
+from trakstar import UDPConnection
 
 udp = UDPConnection()
 print udp
