@@ -23,12 +23,8 @@ class TrakSTARInterface(object):
         self._write_angles = None
         self._write_udp = None
         self.system_configuration = None
-<<<<<<< HEAD
         self.udp = UDPConnection()
-        atexit.register(self.close_data_file)
-=======
         atexit.register(self.close)
->>>>>>> master
 
     def __del__(self):
         self.close(ignore_error=True)

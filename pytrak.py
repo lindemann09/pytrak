@@ -22,17 +22,6 @@ control.defaults.event_logging = 0
 exp = design.Experiment()
 exp.set_log_level(0)
 control.initialize(exp)
-<<<<<<< HEAD
-
-
-trakstar = TrakSTARInterface()
-stimuli.TextLine(text="Initialize TrakSTAR").present()
-trakstar.initialize()
-trakstar.set_system_configuration(sampling_rate=50,
-                                    max_range=72,
-                                    print_configuration = True)
-=======
->>>>>>> master
 stimuli.TextLine(text="Press key to start recording").present()
 exp.keyboard.wait()
 
