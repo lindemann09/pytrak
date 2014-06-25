@@ -24,8 +24,12 @@ else:
     else:
         dll_name = "ATC3DG.DLL"
 
-print "loading library {0}".format(dll_name)
-_api = ctypes.CDLL(dll_name)
+print "loading trakstar library {0}".format(dll_name)
+try:
+    _api = ctypes.CDLL(dll_name)
+except:
+    print "Can't find trakstar library"
+    exit()
 
 
 """ InitializeBIRDSystem    Starts and initializes driver, resets
