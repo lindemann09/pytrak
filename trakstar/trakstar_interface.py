@@ -23,13 +23,18 @@ class TrakSTARInterface(object):
         self._write_angles = None
         self._write_udp = None
         self.system_configuration = None
+<<<<<<< HEAD
         self.udp = UDPConnection()
         atexit.register(self.close_data_file)
+=======
+        atexit.register(self.close)
+>>>>>>> master
 
     def __del__(self):
         self.close(ignore_error=True)
 
-    def close(self, ignore_error=False):
+    def close(self, ignore_error=True):
+        print "closing trakstar"
         self.close_data_file()
         self.attached_sensors = None
         self.init_time = None
@@ -86,7 +91,7 @@ class TrakSTARInterface(object):
                            ctypes.pointer(transmitter_id), 2)
 
         # read in System configuration
-        self.update_system_configuration(print_configuration = True)
+        self.read_system_configuration(print_configuration = True)
 
         # get attached sensors
         sensor_conf = api.SENSOR_CONFIGURATION()
@@ -189,25 +194,26 @@ class TrakSTARInterface(object):
 
         return d
 
-    def update_system_configuration(self, print_configuration = True):
+    def read_system_configuration(self, print_configuration = True):
+        """read system configuration from device"""
         sysconf = api.SYSTEM_CONFIGURATION()
         psys_conf = ctypes.pointer(sysconf)
         api.GetBIRDSystemConfiguration(psys_conf)
-        if print_config:
+        if print_configuration:
             print "n sensors ", sysconf.numberSensors
             print "n boards ", sysconf.numberBoards
-            print "measurement rate:", sysconf.sampling_rate, " Hz."
+            print "measurement rate:", sysconf.measurementRate, " Hz."
             print "maximum range:", sysconf.maximumRange, " inches."
             print "metric data reporting: ", sysconf.metric
             print "power line frequency: ", sysconf.powerLineFrequency, " Hz."
         self.system_configuration  = sysconf
 
 
-    def set_system_configuration(self, sampling_rate=80_co
+    def set_system_configuration(self, measurement_rate=80,
                                 max_range=36, metric=True, power_line=60,
                                print_configuration = True):
         """
-        sampling_rate in Hz: 20.0 < rate < 255.0
+        measurement_rate in Hz: 20.0 < rate < 255.0
         max_range: valid values (in inches): 36.0, 72.0, 144.0
         metric: True (data in mm) or False (data in inches)
         power_line in Hz: 50.0 or 60.0 (frequency of the AC power source)
@@ -215,7 +221,7 @@ class TrakSTARInterface(object):
 
         print "setting system configuration"
 
-        mR = ctypes.c_double(sampling_rate)
+        mR = ctypes.c_double(measurement_rate)
         max_range = ctypes.c_double(max_range)
         metric = ctypes.c_int(int(metric))
         power_line = ctypes.c_double(power_line)
@@ -235,8 +241,9 @@ class TrakSTARInterface(object):
         if error_code!=0:
             self._error_handler(error_code)
         error_code = api.SetSystemParameter(
-                                api.SystemParameterType.POWER_LINE_FREQUENCY,
+                           api.SystemParameterType.POWER_LINE_FREQUENCY,
+                           ctypes.pointer(power_line), 8)
         if error_code!=0:
             self._error_handler(error_code)
 
-        self.update_system_configuration(print_configuration=print_configuration)
+        self.read_system_configuration(print_configuration=print_configuration)
