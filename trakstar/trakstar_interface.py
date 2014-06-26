@@ -207,20 +207,22 @@ class TrakSTARInterface(object):
 
         if print_configuration:
             print "  attached sensors", self.attached_sensors
-            print "  measurement rate:", sysconf.measurementRate, " Hz."
-            print "  maximum range:", sysconf.maximumRange, " inches."
-            print "  metric data reporting: ", sysconf.metric
-            print "  power line frequency: ", sysconf.powerLineFrequency, " Hz."
+            print "  measurement rate:", sysconf.measurementRate," Hz."
+            print "  maximum range:", sysconf.maximumRange," inches."
+            print "  metric data reporting:", bool(sysconf.metric)
+            print "  power line frequency:", sysconf.powerLineFrequency," Hz."
+            print "  report rate:", sysconf.reportRate
 
 
-    def set_system_configuration(self, measurement_rate=80,
-                                max_range=36, metric=True, power_line=60,
-                               print_configuration = True):
+    def set_system_configuration(self, measurement_rate=80, max_range=36,
+                                 metric=True, power_line=60, report_rate=1,
+                                 print_configuration=True):
         """
         measurement_rate in Hz: 20.0 < rate < 255.0
         max_range: valid values (in inches): 36.0, 72.0, 144.0
         metric: True (data in mm) or False (data in inches)
         power_line in Hz: 50.0 or 60.0 (frequency of the AC power source)
+        report_rate: (int), between 1 and 127 --> report every 2nd, 3rd, etc. value
         """
 
         print "* setting system configuration"
@@ -229,6 +231,7 @@ class TrakSTARInterface(object):
         max_range = ctypes.c_double(max_range)
         metric = ctypes.c_int(int(metric))
         power_line = ctypes.c_double(power_line)
+##        report_rate = ctypes.c_int(report_rate)
 
         error_code = api.SetSystemParameter(
                             api.SystemParameterType.MEASUREMENT_RATE,
@@ -249,5 +252,9 @@ class TrakSTARInterface(object):
                            ctypes.pointer(power_line), 8)
         if error_code!=0:
             self._error_handler(error_code)
+##        error_code = api.SetSystemParameter(api.SystemParameterType.REPORT_RATE,
+##                           ctypes.pointer(report_rate), 4)
+##        if error_code!=0:
+##            self._error_handler(error_code)            
 
         self.read_configurations(print_configuration=print_configuration)
