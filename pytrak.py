@@ -149,7 +149,7 @@ for sensor in trakstar.attached_sensors:
     history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
 
 info_col = (255, 150, 50)
-txt_v = stimuli.TextLine("v: visualize dots", position=[-sz[0]/2+100, -sz[1]/2+50],
+txt_v = stimuli.TextLine("v: visualize sensors", position=[-sz[0]/2+100, -sz[1]/2+50],
                          text_size=15, text_colour=info_col)
 txt_p = stimuli.TextLine("p: pause/unpause", position=[0, -sz[1]/2+50],
                          text_size=15, text_colour=info_col)
