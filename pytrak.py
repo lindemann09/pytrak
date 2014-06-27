@@ -104,7 +104,7 @@ if key == ord("y") or key == ord("z"):
     s = trakstar.udp.poll()
     while s is None or s.lower() != 'done':
         stimuli.TextLine(text="Waiting for settings...").present()
-        exp.clock.wait(50)
+        #exp.clock.wait(50)
         if s is not None:
             get_udp_input(s)
         s = trakstar.udp.poll()

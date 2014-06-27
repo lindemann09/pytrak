@@ -6,7 +6,7 @@ __version__ = '0.2.3'
 
 import os
 import ctypes
-from time import localtime, strftime
+from time import localtime, strftime, time
 import atexit
 import atc3dg_functions as api
 from udp_connection import UDPConnection
@@ -99,9 +99,9 @@ class TrakSTARInterface(object):
         print "Done."
 
     def reset_timer(self):
-        self.init_time = 0
-        d = self.get_synchronous_data_dict(write_data_file=False)
-        self.init_time = d["time"] / float(1000)
+        self.init_time = time()
+##        d = self.get_synchronous_data_dict(write_data_file=False)
+##        self.init_time = d["time"] / float(1000)
         
     def is_init(self):
         """Returns if trak ist initialized"""
