@@ -51,27 +51,27 @@ def get_input(i):
 
 def get_udp_input(s):
     global filename, measurement_rate, max_range, report_rate, power_line, metric
-    if s.startswith("filename"):
+    if s.lower().startswith("filename"):
         _, filename = s.split(":")
         filename = filename.strip()
         return
-    elif s.startswith("measurement"):
+    elif s.lower().startswith("measurement"):
         _, measurement_rate = s.split(":")
         measurement_rate = int(measurement_rate.strip())
         return
-    elif s.startswith("maximum"):
+    elif s.lower().startswith("maximum"):
         _, max_range = s.split(":")
         max_range = int(max_range.strip())
         return
-    elif s.startswith("report"):
+    elif s.lower().startswith("report"):
         _, report_rate = s.split(":")
         report_rate = int(report_rate.strip())
         return
-    elif s.startswith("power"):
+    elif s.lower().startswith("power"):
         _, power_line = s.split(":")
         power_line = int(power_line.strip())
         return
-    elif s.startswith("metric"):
+    elif s.lower().startswith("metric"):
         _, metric = s.split(":")
         metric = bool(int(metric.strip()))
         return    
@@ -86,7 +86,7 @@ menu = stimuli.TextScreen("Settings:",
                           text_justification=0,
                           size=[sz[0]/4, sz[1]/2])    
 
-filename, measurement_rate, max_range, report_rate, power_line, metric = None, 80, 36, 1, 60, True
+filename, measurement_rate, max_range, report_rate, power_line, metric = '', 80, 36, 1, 60, True
 
 stimuli.TextLine(text="Use remote control? (Y/N)").present()
 key = exp.keyboard.wait([ord("z"), ord("y"), ord("n")])[0]
@@ -102,11 +102,13 @@ if key == ord("y") or key == ord("z"):
         exp.keyboard.check()
     #get settings from remote
     s = trakstar.udp.poll()
-    while s != 'done':
+    while s is None or s.lower() != 'done':
         stimuli.TextLine(text="Waiting for settings...").present()
+        exp.clock.wait(50)
         if s is not None:
             get_udp_input(s)
         s = trakstar.udp.poll()
+    trakstar.udp.send('confirm')
 #manual control
 else:
     remote = False
@@ -188,17 +190,22 @@ def update_screen(trakstar, circles, history, show_circles):
         txt.plot(canvas)
     canvas.present()
 
-
-stimuli.TextLine(text="Press key to start recording").present()
-exp.keyboard.wait()
-
 pause = False
 cnt = 0
 exp.keyboard.clear()
-exp.clock.reset_stopwatch()
 
 if remote:
-    trakstar.udp.poll_last_data()
+    s = trakstar.udp.poll_last_data() #clear buffer
+    while s is None or not s.lower().startswith('start'):
+        stimuli.TextLine(text="Waiting to start recording...").present()
+        exp.keyboard.check()
+        exp.clock.wait(100)
+        s = trakstar.udp.poll()
+    trakstar.udp.send('confirm')
+else:
+    stimuli.TextLine(text="Press key to start recording").present()
+    exp.keyboard.wait()
+
 trakstar.reset_timer()
 
 while True:
@@ -213,7 +220,7 @@ while True:
         txt_pause.plot(canvas)
         canvas.present()
         plotting = False
-        
+
     key = exp.keyboard.check()
     if key == ord("v"):
         show_circles = not show_circles
@@ -222,6 +229,15 @@ while True:
         plotting = True
     elif key == ord("q"):
         break
+
+    if remote:
+        s = trakstar.udp.poll()
+        if s is not None and s.lower() == 'quit':
+            trakstar.udp.send('confirm')
+            break   
+
+
+
 
 trakstar.close_data_file()
 trakstar.close()
