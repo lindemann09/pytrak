@@ -26,30 +26,72 @@ exp = design.Experiment()
 exp.set_log_level(0)
 control.initialize(exp)
 
+t_wait = 1500
+def invalid_value():
+    stimuli.TextLine(text="Invalid value!").present()
+    exp.clock.wait(t_wait)
+
 def get_input(i):
     global measurement_rate, max_range, report_rate, power_line, metric
     if i == 1:
         measurement_rate = int(io.TextInput("Measurement rate (20 Hz < rate < 255 Hz):", length=3,
                                             ascii_filter=range(ord("0"),ord("9")+1)).get())
+        if measurement_rate < 20 or measurement_rate > 255:
+            measurement_rate = 80
+            invalid_value()
+        else:
+            stimuli.TextLine(text="Measurement rate set to {0} Hz.".format(measurement_rate)).present()
+            exp.clock.wait(t_wait)            
         return
     elif i == 2:
         max_range = int(io.TextInput("Maximum range of transmitter (36, 72, 144 inches):", length=3,
                                      ascii_filter=range(ord("1"),ord("5"))+[ord("6"),ord("7")]).get())
+        if max_range not in [36, 72, 144]:
+            max_range = 36
+            invalid_value()
+        else:
+            stimuli.TextLine(text="Maximum range of transmitter set to {0} inches.".format(max_range)).present()
+            exp.clock.wait(t_wait)    
         return
     elif i == 3:
         report_rate = int(io.TextInput("Report rate of the data (1 <= rate <= 127):", length=3,
                                        ascii_filter=range(ord("0"),ord("9")+1)).get())
+        if report_rate < 1 or report_rate > 127:
+            report_rate = 1
+            invalid_value()
+        else:
+            stimuli.TextLine(text="Report rate of incoming data set to {0}.".format(report_rate)).present()
+            exp.clock.wait(t_wait)  
         return
     elif i == 4:
         power_line = int(io.TextInput("Power line frequency of the AC power source (50 or 60 Hz):",
                                       length=2, ascii_filter=[ord("0"),ord("5"),ord("6")]).get())
+        if power_line not in [50, 60]:
+            power_line = 60
+            invalid_value()
+        else:
+            stimuli.TextLine(text="Power line frequency of the AC power source set to {0} Hz.".format(power_line)).present()
+            exp.clock.wait(t_wait)    
         return
     elif i == 5:
-        metric = bool(int(io.TextInput("Switch metric data reporting on/off (1/0):",
-                                   length=1, ascii_filter=[ord("0"),ord("1")]).get()))
+        metric = int(io.TextInput("Switch metric data reporting on/off (1/0):",
+                                  length=1, ascii_filter=[ord("0"),ord("1")]).get())
+        if metric not in [0, 1]:
+            metric = True
+            invalid_value()
+        else:
+            stimuli.TextLine(text="Metric data reporting set to {0}.".format(metric)).present()
+            exp.clock.wait(t_wait)    
         return        
 
 def get_udp_input(s):
+    """
+    Input received via udp to change TrakSTAR system settings.
+    Every string begins with a description of the value to be changed,
+    followed by a colon, and the value to be set.
+
+    e.g.: "measurement: 50", "metric: 0"  
+    """
     global filename, measurement_rate, max_range, report_rate, power_line, metric
     if s.lower().startswith("filename"):
         _, filename = s.split(":")
@@ -58,24 +100,34 @@ def get_udp_input(s):
     elif s.lower().startswith("measurement"):
         _, measurement_rate = s.split(":")
         measurement_rate = int(measurement_rate.strip())
+        if measurement_rate < 20 or measurement_rate > 255:
+            measurement_rate = 80
         return
     elif s.lower().startswith("maximum"):
         _, max_range = s.split(":")
         max_range = int(max_range.strip())
+        if max_range not in [36, 72, 144]:
+            max_range = 36
         return
     elif s.lower().startswith("report"):
         _, report_rate = s.split(":")
         report_rate = int(report_rate.strip())
+        if report_rate < 1 or report_rate > 127:
+            report_rate = 1
         return
     elif s.lower().startswith("power"):
         _, power_line = s.split(":")
         power_line = int(power_line.strip())
+        if power_line not in [50, 60]:
+            power_line = 60
         return
     elif s.lower().startswith("metric"):
         _, metric = s.split(":")
-        metric = bool(int(metric.strip()))
+        metric = int(metric.strip())
+        if metric not in [0, 1]:
+            metric = True
         return    
-        
+
 menu = stimuli.TextScreen("Settings:",
                           "1: Measurement rate\n"+
                           "2: Maximum range of transmitter\n"+
@@ -104,7 +156,7 @@ if key == ord("y") or key == ord("z"):
     s = trakstar.udp.poll()
     while s is None or s.lower() != 'done':
         stimuli.TextLine(text="Waiting for settings...").present()
-        #exp.clock.wait(50)
+        exp.clock.wait(50)
         if s is not None:
             get_udp_input(s)
         s = trakstar.udp.poll()
@@ -181,7 +233,7 @@ def update_screen(trakstar, circles, history, show_circles):
     canvas.clear_surface()
     txt_box = stimuli.TextBox(text=TrakSTARInterface.data2string(data, times=False, udp=remote),
                     #text_justification = 0,
-                    size = (500, 80*len(trakstar.attached_sensors)), text_size=20)
+                    size = (500, 70*len(trakstar.attached_sensors)), text_size=20)
     if show_circles:
         for circle in circles.values():
             circle.plot(canvas)
@@ -202,6 +254,7 @@ if remote:
         exp.clock.wait(100)
         s = trakstar.udp.poll()
     trakstar.udp.send('confirm')
+    trakstar.udp.poll_last_data() #clear buffer
 else:
     stimuli.TextLine(text="Press key to start recording").present()
     exp.keyboard.wait()
@@ -230,12 +283,17 @@ while True:
     elif key == ord("q"):
         break
 
-    if remote:
+    if remote: #does not work too well yet
         s = trakstar.udp.poll()
-        if s is not None and s.lower() == 'quit':
+        if s is not None and s.lower() == 'pause':
+            pause = not pause
+            plotting = True
+            trakstar.udp.send('confirm')
+            trakstar.udp.poll_last_data()
+        elif s is not None and s.lower() == 'quit':
             trakstar.udp.send('confirm')
             break   
-
+    
 
 
 

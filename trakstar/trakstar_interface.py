@@ -122,7 +122,7 @@ class TrakSTARInterface(object):
     def data2string(data_dict, angles=False, quality=False, times=True,
             udp=True):
         txt = ""
-        for sensor in range(4):
+        for sensor in range(1, 5):
             if data_dict.has_key(sensor):
                 if times:
                     txt = txt + "{0},".format(data_dict["time"])
