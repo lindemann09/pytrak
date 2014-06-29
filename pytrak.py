@@ -12,11 +12,16 @@ trakstar = TrakSTARInterface()
 print "Initialize TrakSTAR"
 trakstar.initialize()
 
+screen_size = io.Screen(colour=(0,63,0), open_gl=False, window_mode=False,
+        window_size=(0,0)).size
+sz = [screen_size[0]-screen_size[0]/10,
+    screen_size[1]-screen_size[1]/10]
+
 #expyriment
 control.defaults.initialize_delay = 0
 control.defaults.pause_key = None
 control.defaults.window_mode = True
-control.defaults.window_size = sz[0],sz[1]
+control.defaults.window_size = sz
 control.defaults.fast_quit = True
 control.defaults.open_gl = False
 control.defaults.event_logging = 0
@@ -24,8 +29,6 @@ exp = design.Experiment()
 exp.set_log_level(0)
 control.initialize(exp)
 
-sz = [exp.screen.size[0]-exp.screen.size[0]/10,
-    exp.screen.size[1]-exp.screen.size[1]/10]
 
 t_wait = 1500
 def invalid_value():
