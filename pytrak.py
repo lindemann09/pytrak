@@ -1,4 +1,5 @@
-from trakstar import TrakSTARInterface, SensorHistory
+from trakstar import TrakSTARInterface
+from sensor_history import SensorHistory
 from expyriment import control, stimuli, design, io, misc
 from time import strftime
 
