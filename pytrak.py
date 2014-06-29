@@ -1,14 +1,11 @@
 from trakstar import TrakSTARInterface, SensorHistory
 from expyriment import control, stimuli, design, io, misc
-from ctypes import windll
 from time import strftime
 
 __author__ = 'Raphael Wallroth <>, \
 Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>'
 __version__ = '0.1.2'
 
-screensize = [windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)] 
-sz = [screensize[0]-screensize[0]/10, screensize[1]-screensize[1]/10]
 
 trakstar = TrakSTARInterface()
 print "Initialize TrakSTAR"
@@ -26,6 +23,9 @@ exp = design.Experiment()
 exp.set_log_level(0)
 control.initialize(exp)
 
+sz = [exp.screen.size[0]-exp.screen.size[0]/10,
+    exp.screen.size[1]-exp.screen.size[1]/10]
+
 t_wait = 1500
 def invalid_value():
     stimuli.TextLine(text="Invalid value!").present()
@@ -41,7 +41,7 @@ def get_input(i):
             invalid_value()
         else:
             stimuli.TextLine(text="Measurement rate set to {0} Hz.".format(measurement_rate)).present()
-            exp.clock.wait(t_wait)            
+            exp.clock.wait(t_wait)
         return
     elif i == 2:
         max_range = int(io.TextInput("Maximum range of transmitter (36, 72, 144 inches):", length=3,
@@ -51,7 +51,7 @@ def get_input(i):
             invalid_value()
         else:
             stimuli.TextLine(text="Maximum range of transmitter set to {0} inches.".format(max_range)).present()
-            exp.clock.wait(t_wait)    
+            exp.clock.wait(t_wait)
         return
     elif i == 3:
         report_rate = int(io.TextInput("Report rate of the data (1 <= rate <= 127):", length=3,
@@ -61,7 +61,7 @@ def get_input(i):
             invalid_value()
         else:
             stimuli.TextLine(text="Report rate of incoming data set to {0}.".format(report_rate)).present()
-            exp.clock.wait(t_wait)  
+            exp.clock.wait(t_wait)
         return
     elif i == 4:
         power_line = int(io.TextInput("Power line frequency of the AC power source (50 or 60 Hz):",
@@ -71,7 +71,7 @@ def get_input(i):
             invalid_value()
         else:
             stimuli.TextLine(text="Power line frequency of the AC power source set to {0} Hz.".format(power_line)).present()
-            exp.clock.wait(t_wait)    
+            exp.clock.wait(t_wait)
         return
     elif i == 5:
         metric = int(io.TextInput("Switch metric data reporting on/off (1/0):",
@@ -81,8 +81,8 @@ def get_input(i):
             invalid_value()
         else:
             stimuli.TextLine(text="Metric data reporting set to {0}.".format(metric)).present()
-            exp.clock.wait(t_wait)    
-        return        
+            exp.clock.wait(t_wait)
+        return
 
 def get_udp_input(s):
     """
@@ -90,7 +90,7 @@ def get_udp_input(s):
     Every string begins with a description of the value to be changed,
     followed by a colon, and the value to be set.
 
-    e.g.: "measurement: 50", "metric: 0"  
+    e.g.: "measurement: 50", "metric: 0"
     """
     global filename, measurement_rate, max_range, report_rate, power_line, metric
     if s.lower().startswith("filename"):
@@ -126,7 +126,7 @@ def get_udp_input(s):
         metric = int(metric.strip())
         if metric not in [0, 1]:
             metric = True
-        return    
+        return
 
 menu = stimuli.TextScreen("Settings:",
                           "1: Measurement rate\n"+
@@ -136,7 +136,7 @@ menu = stimuli.TextScreen("Settings:",
                           "5: Metric data reporting\n\n"+
                           "q: Quit settings",
                           text_justification=0,
-                          size=[sz[0]/4, sz[1]/2])    
+                          size=[sz[0]/4, sz[1]/2])
 
 filename, measurement_rate, max_range, report_rate, power_line, metric = '', 80, 36, 1, 60, True
 
@@ -174,14 +174,14 @@ else:
             get_input(int(chr(int(key))))
             menu.present()
             key = exp.keyboard.wait(range(ord("1"),ord("5")+1)+[ord("q")])[0]
-      
 
-#set system settings    
+
+#set system settings
 trakstar.set_system_configuration(measurement_rate=measurement_rate,
                                   max_range=max_range, power_line=power_line,
                                   metric=metric, report_rate=report_rate,
                                   print_configuration=True)
-    
+
 trakstar.open_data_file(filename=filename, directory="data",
                         suffix = ".csv", time_stamp_filename=True,
                         write_angles=False, write_quality=True,
@@ -211,7 +211,7 @@ txt_q = stimuli.TextLine("q: quit recording", position=[sz[0]/2-100, -sz[1]/2+50
                          text_size=15, text_colour=info_col)
 txt_fn = stimuli.TextLine("filename: "+filename, position=[-sz[0]/2+100, sz[1]/2-50],
                             text_size=15, text_colour=info_col)
-txt_date = stimuli.TextLine(text = "date: {0}".format(strftime("%d/%m/%Y")),                                                                        
+txt_date = stimuli.TextLine(text = "date: {0}".format(strftime("%d/%m/%Y")),
                             position=[sz[0]/2-100, sz[1]/2-50],
                             text_size=15, text_colour=info_col)
 info_txts = [txt_v, txt_p, txt_q, txt_fn, txt_date]
@@ -292,8 +292,8 @@ while True:
             trakstar.udp.poll_last_data()
         elif s is not None and s.lower() == 'quit':
             trakstar.udp.send('confirm')
-            break   
-    
+            break
+
 
 
 
