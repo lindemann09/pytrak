@@ -22,6 +22,49 @@ stimuli.TextLine("connected to " + udp.peer_ip).present()
 
 c = Clock()
 
+##udp.send("maximum: 72")
+##udp.send("measurement: 25")
+##udp.send("filename: test")
+##udp.send("report: 5")
+##print "--> ", c.time, "done"
+##udp.send("done")
+##feedback = udp.poll()
+##while feedback is None:
+##    feedback = udp.poll()
+##print "<-- ", c.time,  feedback
+##
+##print "--> ", c.time, "start"
+##udp.send("start")
+##feedback = udp.poll()
+##while feedback is None:
+##    feedback = udp.poll()
+##print "<-- ", c.time,  feedback   
+##c.wait(2000)
+##
+##print "--> ", c.time, "pause"
+##udp.send("pause")
+##feedback = udp.poll()
+##while feedback is None:
+##    feedback = udp.poll()
+##print "<-- ", c.time,  feedback   
+##c.wait(2000)
+##
+##print "--> ", c.time, "unpause"
+##udp.send("unpause")
+##udp.send("unpause") #for data output
+##feedback = udp.poll()
+##while feedback is None:
+##    feedback = udp.poll()
+##print "<-- ", c.time,  feedback   
+##c.wait(2000)
+##
+##print "--> ", c.time, "quit"
+##udp.send("quit")
+##feedback = udp.poll()
+##while feedback is None:
+##    feedback = udp.poll()
+##print "<-- ", c.time,  feedback   
+
 while True:
     key = exp.keyboard.check()
     if key == ord("q"):
@@ -45,6 +88,6 @@ while True:
 
     feedback = udp.poll()
     if feedback is not None:
-        print "<-- ", c.time,  feedback
+        print "<-- ", c.time,  feedback    
 
 udp.unconnect_peer()

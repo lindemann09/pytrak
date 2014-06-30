@@ -268,15 +268,23 @@ trakstar.reset_timer()
 while True:
     if not pause:
         cnt += 1
-        data = trakstar.get_synchronous_data_dict()
+        data = trakstar.get_synchronous_data_dict() #polls udp while unpaused
+        udp_input = data['udp'] #temporary variable to check for udp input read in by trakstar.get_synchronous_data_dict() 
         for sensor in trakstar.attached_sensors:
             history[sensor].update(data[sensor][:3])
         if cnt % 40 == 1:
             update_screen(trakstar, circles, history, show_circles)
-    elif pause:
-        txt_pause.plot(canvas)
-        canvas.present()
-        exp.clock.wait(50)
+    else:
+        if remote:
+            if udp_input.lower() == 'pause':
+                txt_pause.plot(canvas)
+                canvas.present()
+                udp_input = '0' #reset the pause command to None
+            s = trakstar.udp.poll() #polls udp while paused
+            if s is not None and s.lower() == 'unpause':
+                pause = False
+                trakstar.udp.send('confirm')
+                #if you wish to have the 'unpause' command in your data output, you'll have to send it twice!
         
     key = exp.keyboard.check()
     if key == ord("v"):
@@ -286,32 +294,15 @@ while True:
     elif key == ord("q"):
         break
 
-    if remote: #does not work too well yet
-        s = trakstar.udp.poll()
-#<<<<<<< HEAD
-        if s is not None:
-            if s.lower() == 'pause':
-                pause = True
+    if remote:
+        if udp_input != '0':
+            if udp_input.lower() == 'pause':
+                pause = True                
                 trakstar.udp.send('confirm')
-                #trakstar.udp.poll_last_data()
-            elif s.lower() == 'unpause':
-                pause = False
+            elif udp_input.lower() == 'quit':
                 trakstar.udp.send('confirm')
-            elif s.lower() == 'quit':
-                trakstar.udp.send('confirm')
-                break   
-    
-#=======
-        if s is not None and s.lower() == 'pause':
-            pause = not pause
-            plotting = True
-            trakstar.udp.send('confirm')
-            trakstar.udp.poll_last_data()
-        elif s is not None and s.lower() == 'quit':
-            trakstar.udp.send('confirm')
-            break
+                break     
 
-#>>>>>>> origin/master
 
 
 
