@@ -136,7 +136,7 @@ menu = stimuli.TextScreen("Settings:",
                           "5: Metric data reporting\n\n"+
                           "q: Quit settings",
                           text_justification=0,
-                          size=[sz[0]/4, sz[1]/2])    
+                          size=[sz[0]/4, sz[1]/2])
 
 filename, measurement_rate, max_range, report_rate, power_line, metric = '', 80, 36, 1, 60, True
 
@@ -233,7 +233,7 @@ def update_screen(trakstar, circles, history, show_circles):
     canvas.clear_surface()
     txt_box = stimuli.TextBox(text=TrakSTARInterface.data2string(data, times=False, udp=remote),
                     #text_justification = 0,
-                    size = (500, 70*len(trakstar.attached_sensors)), text_size=20)
+                    size = (sz[0], 70*len(trakstar.attached_sensors)), text_size=20)
     if show_circles:
         for circle in circles.values():
             circle.plot(canvas)
@@ -269,30 +269,32 @@ while True:
             history[sensor].update(data[sensor][:3])
         if cnt % 40 == 1:
             update_screen(trakstar, circles, history, show_circles)
-    elif pause and plotting:
+    elif pause:
         txt_pause.plot(canvas)
         canvas.present()
-        plotting = False
-
+        exp.clock.wait(50)
+        
     key = exp.keyboard.check()
     if key == ord("v"):
         show_circles = not show_circles
     elif key == ord("p"):
         pause = not pause
-        plotting = True
     elif key == ord("q"):
         break
 
     if remote: #does not work too well yet
         s = trakstar.udp.poll()
-        if s is not None and s.lower() == 'pause':
-            pause = not pause
-            plotting = True
-            trakstar.udp.send('confirm')
-            trakstar.udp.poll_last_data()
-        elif s is not None and s.lower() == 'quit':
-            trakstar.udp.send('confirm')
-            break   
+        if s is not None:
+            if s.lower() == 'pause':
+                pause = True
+                trakstar.udp.send('confirm')
+                #trakstar.udp.poll_last_data()
+            elif s.lower() == 'unpause':
+                pause = False
+                trakstar.udp.send('confirm')
+            elif s.lower() == 'quit':
+                trakstar.udp.send('confirm')
+                break   
     
 
 

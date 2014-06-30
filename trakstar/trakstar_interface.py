@@ -211,7 +211,7 @@ class TrakSTARInterface(object):
             print "  maximum range:", sysconf.maximumRange," inches."
             print "  metric data reporting:", bool(sysconf.metric)
             print "  power line frequency:", sysconf.powerLineFrequency," Hz."
-            print "  report rate:", sysconf.reportRate
+            #print "  report rate:", sysconf.reportRate
 
 
     def set_system_configuration(self, measurement_rate=80, max_range=36,
@@ -231,7 +231,7 @@ class TrakSTARInterface(object):
         max_range = ctypes.c_double(max_range)
         metric = ctypes.c_int(int(metric))
         power_line = ctypes.c_double(power_line)
-##        report_rate = ctypes.c_int(report_rate)
+        report_rate = ctypes.c_ushort(report_rate)
 
         error_code = api.SetSystemParameter(
                             api.SystemParameterType.MEASUREMENT_RATE,
@@ -252,9 +252,9 @@ class TrakSTARInterface(object):
                            ctypes.pointer(power_line), 8)
         if error_code!=0:
             self._error_handler(error_code)
-##        error_code = api.SetSystemParameter(api.SystemParameterType.REPORT_RATE,
-##                           ctypes.pointer(report_rate), 4)
-##        if error_code!=0:
-##            self._error_handler(error_code)            
+        error_code = api.SetSystemParameter(api.SystemParameterType.REPORT_RATE,
+                           ctypes.pointer(report_rate), 2)
+        if error_code!=0:
+            self._error_handler(error_code)            
 
         self.read_configurations(print_configuration=print_configuration)

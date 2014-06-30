@@ -353,7 +353,7 @@ class SYSTEM_CONFIGURATION(ct.Structure):
         ('numberTransmitters', ct.c_int),
         ('transmitterIDRunning', ct.c_int),
         ('metric', ct.c_int),
-        ('reportRate', ct.c_int)]
+        ('reportRate', ct.c_ushort)]
 
 class ADAPTIVE_PARAMETERS(ct.Structure):
     _fields_ = [
