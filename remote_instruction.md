@@ -28,9 +28,11 @@ These are your options:
 "metric: <int>" (legal values are 0 or 1)
 
 e.g.
+```
 UDPConnection().send("filename: test")
 UDPConnection().send("maximum range: 72")
 UDPConnection().send("done")
+```
 
 note that it is not important if you call the parameter for better code readability "maximum range",
 as long as it begins with the string "maximum" and has a colon before the value.
