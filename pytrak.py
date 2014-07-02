@@ -1,7 +1,12 @@
+from time import strftime
+import numpy as np
+from expyriment import control, stimuli, design, io, misc
+
+import settings
 from trakstar import TrakSTARInterface
 from sensor_history import SensorHistory
-from expyriment import control, stimuli, design, io, misc
-from time import strftime
+from plotter3d import Plotter3d
+
 
 __author__ = 'Raphael Wallroth <>, \
 Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>'
@@ -208,16 +213,11 @@ trakstar.open_data_file(filename=filename, directory="data",
 
 # make circles and history
 show_circles = False
-colours = { 1: misc.constants.C_RED,
-            2: misc.constants.C_GREEN,
-            3: misc.constants.C_YELLOW,
-            4: misc.constants.C_BLUE }
-circle_diameter = 40
 circles = {}
 history = {}
 for sensor in trakstar.attached_sensors:
-    circles[sensor] = stimuli.Circle(circle_diameter, colour=colours[sensor])
-    stimuli.TextLine(str(sensor), text_size=circle_diameter/2, text_bold=True,
+    circles[sensor] = stimuli.Circle(settings.circle_diameter, colour=settings.colours[sensor])
+    stimuli.TextLine(str(sensor), text_size=settings.circle_diameter/2, text_bold=True,
                      text_colour=misc.constants.C_WHITE).plot(circles[sensor])
     history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
 
@@ -238,38 +238,25 @@ info_txts = [txt_v, txt_p, txt_q, txt_fn, txt_date]
 txt_pause = stimuli.TextLine("PAUSED", position=[0,-50],text_size=50, text_colour=info_col)
 canvas = stimuli.BlankScreen()
 
-import os
 
-def cls():
-    os.system(['clear','cls'][os.name == 'nt'])
+def update_circles(trakstar,circles, history):
+    for sensor in trakstar.attached_sensors:
+        if not trakstar.system_configuration.metric:
+            circles[sensor].position = (
+                int(round(history[sensor].moving_average[1]*10)),
+                int(round(history[sensor].moving_average[0]*10)))
+        else:
+            circles[sensor].position = (history[sensor].moving_average[1]/2,
+                                        history[sensor].moving_average[0]/2)
+    for circle in circles.values(): #todo
+        circle.plot(canvas)
 
+def show_info_screen():
+    canvas = stimuli.BlankScreen()
+    for txt in info_txts:
+        txt.plot(canvas)
+    canvas.present()
 
-def update_screen(trakstar, circles, history, show_circles, full_screen_update = True):
-    if show_circles:
-        for sensor in trakstar.attached_sensors:
-            if not trakstar.system_configuration.metric:
-                circles[sensor].position = (
-                    int(round(history[sensor].moving_average[1]*10)),
-                    int(round(history[sensor].moving_average[0]*10)))
-            else:
-                circles[sensor].position = (history[sensor].moving_average[1]/2,
-                                            history[sensor].moving_average[0]/2)
-    if full_screen_update:
-        canvas.clear_surface()
-        txt_box.plot(canvas)
-        for txt in info_txts:
-            txt.plot(canvas)
-        if show_circles:
-            for circle in circles.values():
-                circle.plot(canvas)
-        canvas.present()
-
-    #txt_box = stimuli.TextBox(text=TrakSTARInterface.data2string(data, times=True, udp=remote),
-    #                          size = (sz[0], 70*len(trakstar.attached_sensors)), text_size=20)
-    print TrakSTARInterface.data2string(data, times=True, udp=remote)
-    #txt_box.present(clear = True, update = False)
-    #exp.screen.update_stimuli(txt_box)
-    
 
 pause = False
 cnt = -1
@@ -291,18 +278,24 @@ else:
 
 trakstar.reset_timer()
 
-#update_screen(trakstar, circles, history, show_circles)
+plotter = Plotter3d(attached_sensors=trakstar.attached_sensors)
+show_info_screen()
+scale = 1
 while True:
     if not pause:
         cnt += 1
         data = trakstar.get_synchronous_data_dict() #polls udp while unpaused
         udp_input = data['udp'] #temporary variable to check for udp input read in by trakstar.get_synchronous_data_dict() 
-        for sensor in trakstar.attached_sensors:
-            history[sensor].update(data[sensor][:3])
-        if cnt % (40/div) == 0:
-            exp.clock.reset_stopwatch()
-            update_screen(trakstar, circles, history, show_circles, full_screen_update=False)
-            print exp.clock.stopwatch_time
+
+        exp.clock.reset_stopwatch()
+        #for sensor in trakstar.attached_sensors:
+        #    history[sensor].update(data[sensor][:3])
+        plotter.update_values(data)
+        exp.screen.update_stimuli(plotter.plotter_array)
+        print exp.clock.stopwatch_time
+        
+        if cnt % (40/div) == 0 and show_circles:
+            update_circles(trakstar, circles, history)
     else:
         if remote:
             if udp_input.lower() == 'pause':
@@ -322,7 +315,11 @@ while True:
         pause = not pause
     elif key == ord("q"):
         break
-
+    elif key == misc.constants.K_UP:
+        plotter.scale += 0.01
+    elif key == misc.constants.K_DOWN:
+        plotter.scale -= 0.01
+    
     if remote:
         if udp_input != '0':
             if udp_input.lower() == 'pause':

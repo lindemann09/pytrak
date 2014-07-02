@@ -8,6 +8,7 @@ import os
 import ctypes
 from time import localtime, strftime, time
 import atexit
+import numpy as np
 import atc3dg_functions as api
 from udp_connection import UDPConnection
 
@@ -170,21 +171,21 @@ class TrakSTARInterface(object):
         d["time"] = trakstar_time
         d["cpu_time"] = cpu_time
         if 1 in self.attached_sensors:
-            d[1] = [self._record.x0, self._record.y0, self._record.z0,
+            d[1] = np.array([self._record.x0, self._record.y0, self._record.z0,
                    self._record.a0, self._record.e0, self._record.r0,
-                   self._record.quality0]
+                   self._record.quality0])
         if 2 in self.attached_sensors:
-            d[2] = [self._record.x1, self._record.y1, self._record.z1,
+            d[2] = np.array([self._record.x1, self._record.y1, self._record.z1,
                    self._record.a1, self._record.e1, self._record.r1,
-                    self._record.quality1]
+                    self._record.quality1])
         if 3 in self.attached_sensors:
-            d[3] = [self._record.x2, self._record.y2, self._record.z2,
+            d[3] = np.array([self._record.x2, self._record.y2, self._record.z2,
                     self._record.a2, self._record.e2, self._record.r2,
-                    self._record.quality2]
+                    self._record.quality2])
         if 4 in self.attached_sensors:
-            d[4] = [self._record.x3, self._record.y3, self._record.z3,
+            d[4] = np.array([self._record.x3, self._record.y3, self._record.z3,
                    self._record.a3, self._record.e3, self._record.r3,
-                    self._record.quality3]
+                    self._record.quality3])
 
         if udp_data is None:
             d["udp"] = "0"
