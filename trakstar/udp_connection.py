@@ -72,7 +72,6 @@ class UDPConnection(object):
             data, sender = self.socket.recvfrom(1024)
         except:
             return None
-        #if data is not None: print "received:", data, sender[0]
 
         #process data
         if data == UDPConnection.CONNECT:
@@ -125,14 +124,14 @@ class UDPConnection(object):
         return False
 
     def unconnect_peer(self, timeout=1.0):
-        self.send(UDPConnection.UNCONNECT)
+        self.send(UDPConnection.COMMAND_REPLY)
         self.peer_ip = None
 
     @property
     def is_connected(self):
         return self.peer_ip is not None
 
-    def ping(self, timeout = 0.2):
+    def ping(self, timeout = 0.5):
         """returns boolean if suceeded and ping time"""
         if self.peer_ip == None:
             return (False, None)

@@ -28,6 +28,7 @@ def get_monitor_resolution():
     return (pygame.display.Info().current_w,
                 pygame.display.Info().current_h)
 
+screen_size = get_monitor_resolution()
 sz = [screen_size[0]-screen_size[0]/10,
     screen_size[1]-screen_size[1]/10]
 
@@ -203,7 +204,7 @@ trakstar.set_system_configuration(measurement_rate=measurement_rate,
 trakstar.open_data_file(filename=filename, directory="data",
                         suffix = ".csv", time_stamp_filename=True,
                         write_angles=False, write_quality=True,
-                        write_udp=remote)
+                        write_udp=remote, write_cpu_times=False) #todo: in settings
 
 # make circles and history
 show_circles = False
@@ -237,7 +238,13 @@ info_txts = [txt_v, txt_p, txt_q, txt_fn, txt_date]
 txt_pause = stimuli.TextLine("PAUSED", position=[0,-50],text_size=50, text_colour=info_col)
 canvas = stimuli.BlankScreen()
 
-def update_screen(trakstar, circles, history, show_circles):
+import os
+
+def cls():
+    os.system(['clear','cls'][os.name == 'nt'])
+
+
+def update_screen(trakstar, circles, history, show_circles, full_screen_update = True):
     if show_circles:
         for sensor in trakstar.attached_sensors:
             if not trakstar.system_configuration.metric:
@@ -247,38 +254,44 @@ def update_screen(trakstar, circles, history, show_circles):
             else:
                 circles[sensor].position = (history[sensor].moving_average[1]/2,
                                             history[sensor].moving_average[0]/2)
+    if full_screen_update:
+        canvas.clear_surface()
+        txt_box.plot(canvas)
+        for txt in info_txts:
+            txt.plot(canvas)
+        if show_circles:
+            for circle in circles.values():
+                circle.plot(canvas)
+        canvas.present()
 
-    canvas.clear_surface()
-    txt_box = stimuli.TextBox(text=TrakSTARInterface.data2string(data, times=False, udp=remote),
-                    #text_justification = 0,
-                    size = (sz[0], 70*len(trakstar.attached_sensors)), text_size=20)
-    if show_circles:
-        for circle in circles.values():
-            circle.plot(canvas)
-    txt_box.plot(canvas)
-    for txt in info_txts:
-        txt.plot(canvas)
-    canvas.present()
+    #txt_box = stimuli.TextBox(text=TrakSTARInterface.data2string(data, times=True, udp=remote),
+    #                          size = (sz[0], 70*len(trakstar.attached_sensors)), text_size=20)
+    print TrakSTARInterface.data2string(data, times=True, udp=remote)
+    #txt_box.present(clear = True, update = False)
+    #exp.screen.update_stimuli(txt_box)
+    
 
 pause = False
-cnt = 0
+cnt = -1
+div = report_rate
+if report_rate > 40:
+    div = 40
 exp.keyboard.clear()
 
 if remote:
-    s = trakstar.udp.poll_last_data() #clear buffer
+    trakstar.udp.poll_last_data() #clear buffer
+    stimuli.TextLine(text="Waiting to start recording...").present()
     while s is None or not s.lower().startswith('start'):
-        stimuli.TextLine(text="Waiting to start recording...").present()
         exp.keyboard.check()
-        exp.clock.wait(100)
         s = trakstar.udp.poll()
     trakstar.udp.send('confirm')
-    trakstar.udp.poll_last_data() #clear buffer
 else:
     stimuli.TextLine(text="Press key to start recording").present()
     exp.keyboard.wait()
 
 trakstar.reset_timer()
 
+#update_screen(trakstar, circles, history, show_circles)
 while True:
     if not pause:
         cnt += 1
@@ -286,8 +299,10 @@ while True:
         udp_input = data['udp'] #temporary variable to check for udp input read in by trakstar.get_synchronous_data_dict() 
         for sensor in trakstar.attached_sensors:
             history[sensor].update(data[sensor][:3])
-        if cnt % 40 == 1:
-            update_screen(trakstar, circles, history, show_circles)
+        if cnt % (40/div) == 0:
+            exp.clock.reset_stopwatch()
+            update_screen(trakstar, circles, history, show_circles, full_screen_update=False)
+            print exp.clock.stopwatch_time
     else:
         if remote:
             if udp_input.lower() == 'pause':
