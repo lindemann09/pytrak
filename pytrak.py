@@ -12,8 +12,22 @@ trakstar = TrakSTARInterface()
 print "Initialize TrakSTAR"
 trakstar.initialize()
 
-screen_size = io.Screen(colour=(0,63,0), open_gl=False, window_mode=False,
-        window_size=(0,0)).size
+
+def get_monitor_resolution():
+    """Returns the monitor resolution
+
+    Returns
+    -------
+    resolution: (int, int)
+        monitor resolution, screen resolution
+
+    """
+
+    import pygame
+    pygame.display.init()
+    return (pygame.display.Info().current_w,
+                pygame.display.Info().current_h)
+
 sz = [screen_size[0]-screen_size[0]/10,
     screen_size[1]-screen_size[1]/10]
 
