@@ -28,6 +28,9 @@ var/
 #vim
 *.swp
 
+#pycharm
+.idea/
+
 # Mr Developer
 .mr.developer.cfg
 .project
