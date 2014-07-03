@@ -9,17 +9,19 @@ Author: O. Lindemann
 
 import sys
 import ctypes
+
 from atc3dg_types import *
+
 
 if sys.platform.startswith("linux"):
     # linux isn't tested
     print "Please ensure that ATCdaemon[32/64] is running"
-    if ctypes.sizeof(ctypes.c_voidp)*8 == 64:
+    if ctypes.sizeof(ctypes.c_voidp) * 8 == 64:
         dll_name = "/usr/lib64/ATC3DGlib64.so"
     else:
         dll_name = "/usr/lib/ATC3DGlib32.so"
 else:
-    if ctypes.sizeof(ctypes.c_voidp)*8 == 64:
+    if ctypes.sizeof(ctypes.c_voidp) * 8 == 64:
         dll_name = "ATC3DG64.DLL"
     else:
         dll_name = "ATC3DG.DLL"
@@ -30,7 +32,6 @@ try:
 except:
     print "Can't find trakstar library"
     _api = None
-
 
 if _api is not None:
     """ InitializeBIRDSystem    Starts and initializes driver, resets
@@ -47,7 +48,6 @@ if _api is not None:
     """
     InitializeBIRDSystem = _api._InitializeBIRDSystem
     InitializeBIRDSystem.restype = ctypes.c_int
-
 
     """ GetBIRDSystemConfiguration
 
@@ -68,7 +68,6 @@ if _api is not None:
     GetBIRDSystemConfiguration.restype = ctypes.c_int
     GetBIRDSystemConfiguration.argtypes = [ctypes.POINTER(SYSTEM_CONFIGURATION)]
 
-
     """ GetTransmitterConfiguration
 
         Parameters Passed:  USHORT transmitterID
@@ -85,7 +84,7 @@ if _api is not None:
     GetTransmitterConfiguration = _api._GetTransmitterConfiguration
     GetTransmitterConfiguration.restype = ctypes.c_int
     GetTransmitterConfiguration.argtypes = [ctypes.c_ushort,
-                                    ctypes.POINTER(TRANSMITTER_CONFIGURATION)]
+                                            ctypes.POINTER(TRANSMITTER_CONFIGURATION)]
 
     """ GetSensorConfiguration
 
@@ -100,7 +99,7 @@ if _api is not None:
     GetSensorConfiguration = _api._GetSensorConfiguration
     GetSensorConfiguration.restype = ctypes.c_int
     GetSensorConfiguration.argtypes = [ctypes.c_ushort,
-                                    ctypes.POINTER(SENSOR_CONFIGURATION)]
+                                       ctypes.POINTER(SENSOR_CONFIGURATION)]
 
     """ GetBoardConfiguration
 
@@ -120,7 +119,7 @@ if _api is not None:
     GetBoardConfiguration = _api._GetBoardConfiguration
     GetBoardConfiguration.restype = ctypes.c_int
     GetBoardConfiguration.argtypes = [ctypes.c_ushort,
-                                    ctypes.POINTER(BOARD_CONFIGURATION)]
+                                      ctypes.POINTER(BOARD_CONFIGURATION)]
     """ GetAsynchronousRecord
 
         Parameters Passed:  USHORT sensorID,
@@ -140,7 +139,6 @@ if _api is not None:
     GetAsynchronousRecord = _api._GetAsynchronousRecord
     GetAsynchronousRecord.restype = ctypes.c_int
     GetAsynchronousRecord.argtypes = [ctypes.c_ushort, ctypes.c_void_p, ctypes.c_int]
-
 
     """ GetSynchronousRecord
 
@@ -163,7 +161,6 @@ if _api is not None:
     GetSynchronousRecord.restype = ctypes.c_ushort
     GetSynchronousRecord.argtypes = [ctypes.c_ushort, ctypes.c_void_p, ctypes.c_int]
 
-
     """ GetSystemParameter
 
         Parameters Passed:  PARAMETER_TYPE  parameterType,
@@ -182,7 +179,6 @@ if _api is not None:
     GetSystemParameter.restype = ctypes.c_int
     GetSystemParameter.argtypes = [enum_type, ctypes.c_void_p, ctypes.c_int]
 
-
     """ SetSystemParameter
 
         Parameters Passed:  PARAMETER_TYPE  parameterType,
@@ -198,7 +194,6 @@ if _api is not None:
     SetSystemParameter = _api._SetSystemParameter
     SetSystemParameter.restype = ctypes.c_int
     SetSystemParameter.argtypes = [enum_type, ctypes.c_void_p, ctypes.c_int]
-
 
     """ GetSensorParameter
 
@@ -221,7 +216,6 @@ if _api is not None:
     GetSensorParameter.argtypes = [ctypes.c_ushort, enum_type,
                                    ctypes.c_void_p, ctypes.c_int]
 
-
     """ SetSensorParameter
 
         Parameters Passed:  USHORT          sensorID,
@@ -240,7 +234,6 @@ if _api is not None:
     SetSensorParameter.argtypes = [ctypes.c_ushort, enum_type,
                                    ctypes.c_void_p, ctypes.c_int]
 
-
     """ GetTransmitterParameter
 
         Parameters Passed:  USHORT          transmitterID,
@@ -256,7 +249,7 @@ if _api is not None:
     GetTransmitterParameter = _api._GetTransmitterParameter
     GetTransmitterParameter.restype = ctypes.c_int
     GetTransmitterParameter.argtypes = [ctypes.c_ushort, enum_type,
-                                   ctypes.c_void_p, ctypes.c_int]
+                                        ctypes.c_void_p, ctypes.c_int]
 
     """ SetTransmitterParameter
 
@@ -273,7 +266,7 @@ if _api is not None:
     SetTransmitterParameter = _api._SetTransmitterParameter
     SetTransmitterParameter.restype = ctypes.c_int
     SetTransmitterParameter.argtypes = [ctypes.c_ushort, enum_type,
-                                   ctypes.c_void_p, ctypes.c_int]
+                                        ctypes.c_void_p, ctypes.c_int]
 
     """ GetBIRDError
 
@@ -308,14 +301,13 @@ if _api is not None:
     """
     GetErrorText = _api._GetErrorText
     GetErrorText.restype = ctypes.c_int
-    GetErrorText.argtypes = [ctypes.c_int, ctypes.c_char_p, ## TODO: ctypes.POINTER(ctypes.c_char)?
-                            ctypes.c_int, enum_type]
+    GetErrorText.argtypes = [ctypes.c_int, ctypes.c_char_p,  # # TODO: ctypes.POINTER(ctypes.c_char)?
+                             ctypes.c_int, enum_type]
 
     """ GetSensorStatus(USHORT sensorID)"""
     GetSensorStatus = _api._GetSensorStatus
     GetSensorStatus.restype = device_status
     GetSensorStatus.argtypes = [ctypes.c_ushort]
-
 
     """ GetTransmitterStatus( USHORT transmitterID)"""
     GetTransmitterStatus = _api._GetTransmitterStatus
@@ -331,7 +323,6 @@ if _api is not None:
     GetSystemStatus = _api._GetSystemStatus
     GetSystemStatus.restype = device_status
     GetSystemStatus.argtypes = [ctypes.c_ushort]
-
 
     """ SaveSystemConfiguration( LPCSTR  lpFileName); """
     SaveSystemConfiguration = _api._SaveSystemConfiguration
@@ -352,7 +343,7 @@ if _api is not None:
     GetBoardParameter = _api._GetBoardParameter
     GetBoardParameter.restype = ctypes.c_ushort
     GetBoardParameter.argtypes = [ctypes.c_ushort, enum_type,
-                                ctypes.c_void_p, ctypes.c_int]
+                                  ctypes.c_void_p, ctypes.c_int]
 
     """ SetBoardParameter(
         USHORT                      boardID,
@@ -363,7 +354,7 @@ if _api is not None:
     SetBoardParameter = _api._SetBoardParameter
     SetBoardParameter.restype = ctypes.c_ushort
     SetBoardParameter.argtypes = [ctypes.c_ushort, enum_type,
-                                ctypes.c_void_p, ctypes.c_int]
+                                  ctypes.c_void_p, ctypes.c_int]
 
     """CloseBIRDSystem() """
     CloseBIRDSystem = _api._CloseBIRDSystem

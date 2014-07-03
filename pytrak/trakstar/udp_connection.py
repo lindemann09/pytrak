@@ -5,7 +5,7 @@ __author__ = "Oliver Lindemann <oliver@expyriment.org>"
 __version__ = ''
 
 import os
-from time import sleep,time
+from time import sleep, time
 import socket
 
 if os.name != "nt":
@@ -15,8 +15,9 @@ if os.name != "nt":
     def get_interface_ip(ifname):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         return socket.inet_ntoa(fcntl.ioctl(s.fileno(),
-                0x8915, struct.pack('256s',
-                ifname[:15]))[20:24])
+                                            0x8915, struct.pack('256s',
+                                                                ifname[:15]))[20:24])
+
 
 def get_lan_ip():
     # code bas on http://stackoverflow.com/questions/11735821/python-get-localhost-ip
@@ -32,7 +33,7 @@ def get_lan_ip():
             "ath0",
             "ath1",
             "ppp0",
-            ]
+        ]
         for ifname in interfaces:
             try:
                 ip = get_interface_ip(ifname)
@@ -41,8 +42,8 @@ def get_lan_ip():
                 pass
     return ip
 
-class UDPConnection(object):
 
+class UDPConnection(object):
     COMMAND_CHAR = "$"
     CONNECT = COMMAND_CHAR + "connect"
     UNCONNECT = COMMAND_CHAR + "unconnect"
@@ -52,8 +53,8 @@ class UDPConnection(object):
     def __init__(self, udp_port=5005):
         self.udp_port = udp_port
 
-        self.socket = socket.socket(socket.AF_INET, # Internet
-                         socket.SOCK_DGRAM) # UDP
+        self.socket = socket.socket(socket.AF_INET,  # Internet
+                                    socket.SOCK_DGRAM)  # UDP
         self.my_ip = get_lan_ip()
         self.socket.bind((self.my_ip, self.udp_port))
         self.socket.setblocking(False)
@@ -61,7 +62,7 @@ class UDPConnection(object):
 
     def __str__(self):
         return "ip: {0} (port: {1}); peer: {2}".format(self.my_ip,
-                self.udp_port, self.peer_ip)
+                                                       self.udp_port, self.peer_ip)
 
     def poll(self):
         """returns data None if not data found
@@ -73,14 +74,14 @@ class UDPConnection(object):
         except:
             return None
 
-        #process data
+        # process data
         if data == UDPConnection.CONNECT:
             #connection request
             self.peer_ip = sender[0]
             if not self.send(UDPConnection.COMMAND_REPLY):
                 self.peer_ip = None
         elif sender[0] != self.peer_ip:
-            return None # ignore data
+            return None  # ignore data
         elif data == UDPConnection.PING:
             self.send(UDPConnection.COMMAND_REPLY)
         elif data == self.UNCONNECT:
@@ -96,31 +97,31 @@ class UDPConnection(object):
         if self.peer_ip is None:
             return False
         start = time()
-        while time()-start < timeout:
+        while time() - start < timeout:
             try:
                 self.socket.sendto(data, (self.peer_ip, self.udp_port))
-                #print "send:", data, self.peer_ip
+                # print "send:", data, self.peer_ip
                 return True
             except:
-                sleep(0.001) # wait 1 ms
+                sleep(0.001)  # wait 1 ms
         return False
 
-    def connect_peer(self, peer_ip, timeout = 1):
+    def connect_peer(self, peer_ip, timeout=1):
         self.unconnect_peer()
         self.peer_ip = peer_ip
-        if self.send(UDPConnection.CONNECT, timeout = timeout) and \
-           self.wait_input(UDPConnection.COMMAND_REPLY, duration=timeout):
+        if self.send(UDPConnection.CONNECT, timeout=timeout) and \
+                self.wait_input(UDPConnection.COMMAND_REPLY, duration=timeout):
             return True
         self.peer_ip = None
         return False
 
-    def wait_input(self, input_string, duration = 1):
+    def wait_input(self, input_string, duration=1):
         """poll the connection and waits for a specific input"""
         start = time()
-        while time()-start < duration:
-                in_ = self.poll()
-                if in_ == UDPConnection.COMMAND_REPLY:
-                    return True
+        while time() - start < duration:
+            in_ = self.poll()
+            if in_ == UDPConnection.COMMAND_REPLY:
+                return True
         return False
 
     def unconnect_peer(self, timeout=1.0):
@@ -131,14 +132,14 @@ class UDPConnection(object):
     def is_connected(self):
         return self.peer_ip is not None
 
-    def ping(self, timeout = 0.5):
+    def ping(self, timeout=0.5):
         """returns boolean if suceeded and ping time"""
         if self.peer_ip == None:
             return (False, None)
         start = time()
-        if self.send(UDPConnection.PING, timeout = timeout) and \
-           self.wait_input(UDPConnection.COMMAND_REPLY, duration=timeout):
-            return (True, ((time()-start)*1000))
+        if self.send(UDPConnection.PING, timeout=timeout) and \
+                self.wait_input(UDPConnection.COMMAND_REPLY, duration=timeout):
+            return (True, ((time() - start) * 1000))
         return (False, None)
 
     def clear_receive_buffer(self):

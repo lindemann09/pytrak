@@ -7,7 +7,7 @@ import atexit
 import ConfigParser
 from expyriment import stimuli, misc
 
-### settings ###
+# ## settings ###
 measurement_rate = 80
 max_range = 36
 report_rate = 1
@@ -17,19 +17,20 @@ metric = True
 circle_diameter = 40
 
 plotter_width = 500
-plotter_background_colour = (0,0,0)
-plotter_axis_colour = (100,100,100)
+plotter_background_colour = (0, 0, 0)
+plotter_axis_colour = (100, 100, 100)
 ####
 
 
-colours = { 1: misc.constants.C_RED,
-            2: misc.constants.C_GREEN,
-            3: misc.constants.C_YELLOW,
-            4: misc.constants.C_BLUE }
+colours = {1: misc.constants.C_RED,
+           2: misc.constants.C_GREEN,
+           3: misc.constants.C_YELLOW,
+           4: misc.constants.C_BLUE}
 
 t_wait = 1500
 cfg_filename = "pytrak.cfg"
 cfg_section = 'TrakStar'
+
 
 def save():
     config = ConfigParser.RawConfigParser()
@@ -42,6 +43,7 @@ def save():
     config.set(cfg_section, "metric", metric)
     with open(cfg_filename, 'wb') as configfile:
         config.write(configfile)
+
 
 def read():
     global measurement_rate, max_range
@@ -62,27 +64,30 @@ def read():
         return False
     return True
 
+
 def get_menu(exp):
     return stimuli.TextScreen("Settings:",
-                          "1: Measurement rate\n"+
-                          "2: Maximum range of transmitter\n"+
-                          "3: Report rate of data\n"+
-                          "4: Power line frequency\n"+
-                          "5: Metric data reporting\n\n"+
-                          "q: Quit settings",
-                          text_justification=0,
-                          size=[exp.screen.size[0]/4,
-                                exp.screen.size[1]/2])
+                              "1: Measurement rate\n" +
+                              "2: Maximum range of transmitter\n" +
+                              "3: Report rate of data\n" +
+                              "4: Power line frequency\n" +
+                              "5: Metric data reporting\n\n" +
+                              "q: Quit settings",
+                              text_justification=0,
+                              size=[exp.screen.size[0] / 4,
+                                    exp.screen.size[1] / 2])
+
 
 def invalid_value(exp):
     stimuli.TextLine(text="Invalid value!").present()
     exp.clock.wait(t_wait)
 
+
 def get_input(exp, i):
     global measurement_rate, max_range, report_rate, power_line, metric
     if i == 1:
         measurement_rate = int(io.TextInput("Measurement rate (20 Hz < rate < 255 Hz):", length=3,
-                                            ascii_filter=range(ord("0"),ord("9")+1)).get())
+                                            ascii_filter=range(ord("0"), ord("9") + 1)).get())
         if measurement_rate < 20 or measurement_rate > 255:
             measurement_rate = 80
             invalid_value()
@@ -92,7 +97,7 @@ def get_input(exp, i):
         return
     elif i == 2:
         max_range = int(io.TextInput("Maximum range of transmitter (36, 72, 144 inches):", length=3,
-                                     ascii_filter=range(ord("1"),ord("5"))+[ord("6"),ord("7")]).get())
+                                     ascii_filter=range(ord("1"), ord("5")) + [ord("6"), ord("7")]).get())
         if max_range not in [36, 72, 144]:
             max_range = 36
             invalid_value()
@@ -102,7 +107,7 @@ def get_input(exp, i):
         return
     elif i == 3:
         report_rate = int(io.TextInput("Report rate of the data (1 <= rate <= 127):", length=3,
-                                       ascii_filter=range(ord("0"),ord("9")+1)).get())
+                                       ascii_filter=range(ord("0"), ord("9") + 1)).get())
         if report_rate < 1 or report_rate > 127:
             report_rate = 1
             invalid_value()
@@ -112,17 +117,18 @@ def get_input(exp, i):
         return
     elif i == 4:
         power_line = int(io.TextInput("Power line frequency of the AC power source (50 or 60 Hz):",
-                                      length=2, ascii_filter=[ord("0"),ord("5"),ord("6")]).get())
+                                      length=2, ascii_filter=[ord("0"), ord("5"), ord("6")]).get())
         if power_line not in [50, 60]:
             power_line = 60
             invalid_value()
         else:
-            stimuli.TextLine(text="Power line frequency of the AC power source set to {0} Hz.".format(power_line)).present()
+            stimuli.TextLine(
+                text="Power line frequency of the AC power source set to {0} Hz.".format(power_line)).present()
             exp.clock.wait(t_wait)
         return
     elif i == 5:
         metric = int(io.TextInput("Switch metric data reporting on/off (1/0):",
-                                  length=1, ascii_filter=[ord("0"),ord("1")]).get())
+                                  length=1, ascii_filter=[ord("0"), ord("1")]).get())
         if metric not in [0, 1]:
             metric = True
             invalid_value()
@@ -130,6 +136,7 @@ def get_input(exp, i):
             stimuli.TextLine(text="Metric data reporting set to {0}.".format(metric)).present()
             exp.clock.wait(t_wait)
         return
+
 
 def get_udp_input(exp, s):
     """

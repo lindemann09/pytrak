@@ -6,6 +6,7 @@ __version__ = 0.1
 
 import math
 
+
 class SensorHistory():
     """The Sensory History keeps track of the last n recorded sample and
     calculates online the moving average (running mean).
@@ -41,8 +42,8 @@ class SensorHistory():
         else:
             self._correction_cnt += 1
             self._moving_average = map(
-                lambda x:x[0] + (float(x[1]-x[2])/len(self.history)),
-                        zip(self._moving_average, values, pop))
+                lambda x: x[0] + (float(x[1] - x[2]) / len(self.history)),
+                zip(self._moving_average, values, pop))
 
 
     def calc_history_average(self):
@@ -56,8 +57,8 @@ class SensorHistory():
 
         s = [float(0)] * self.number_of_parameter
         for t in self.history:
-            s = map(lambda x:x[0]+x[1], zip(s, t))
-        return map(lambda x:x/len(self.history), s)
+            s = map(lambda x: x[0] + x[1], zip(s, t))
+        return map(lambda x: x / len(self.history), s)
 
     def distance_to_point(self, point):
         """returns current euclidian distance to a point in space, based on
@@ -68,8 +69,8 @@ class SensorHistory():
         point has to match in the number of dimensions
         """
 
-        return math.sqrt(sum( map(lambda x:(x[1]-x[0])**2,
-                    zip(self._moving_average, point)) ))
+        return math.sqrt(sum(map(lambda x: (x[1] - x[0]) ** 2,
+                                 zip(self._moving_average, point))))
 
     @property
     def history_size(self):
@@ -90,19 +91,20 @@ class SensorHistory():
     @property
     def replacement(self):
         """returns the current replacement based on filtered data"""
-        return map(lambda x:x[0]-x[1], zip(self._moving_average,
-                self._previous_moving_average))
+        return map(lambda x: x[0] - x[1], zip(self._moving_average,
+                                              self._previous_moving_average))
 
     def velocity(self, sampling_rate):
         """returns the current velocity based on filtered data"""
         return self.distance_to_point(self._previous_moving_average) * sampling_rate
+
 
 if __name__ == "__main__":
     import random
 
     sh = SensorHistory(history_size=5, number_of_parameter=3)
     for x in range(19908):
-        x = [random.randint(0,100),random.randint(0,100), random.randint(0,100)]
+        x = [random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)]
         sh.update(x)
 
     print sh.moving_average, sh.calc_history_average()

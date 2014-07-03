@@ -16,6 +16,7 @@ def inherit_docs(cls):
                     break
     return cls
 
+
 @inherit_docs
 class PGSurface(Canvas):
     """PyGame Surface: Expyriment Stimulus for direct Pygame operations and
@@ -26,7 +27,7 @@ class PGSurface(Canvas):
     """
 
     def __init__(self, size, position=None, colour=None):
-        #TODO: defaults
+        # TODO: defaults
         Canvas.__init__(self, size, position, colour)
         self._px_array = None
 
@@ -34,10 +35,10 @@ class PGSurface(Canvas):
     def surface(self):
         """todo"""
         if not self.has_surface:
-            ok = self._set_surface(self._get_surface()) #create surface
+            ok = self._set_surface(self._get_surface())  # create surface
             if not ok:
                 raise RuntimeError(Visual._compression_exception_message.format(
-                "surface"))
+                    "surface"))
         return self._surface
 
     @property
@@ -95,7 +96,7 @@ class PGSurface(Canvas):
         return Canvas.scale(self, factors)
 
     # expyriment 0.8.0
-    #def scale_to_fullscreen(self, keep_aspect_ratio=True):
+    # def scale_to_fullscreen(self, keep_aspect_ratio=True):
     #    self.unlock_pixel_array()
     #    return Canvas.scale_to_fullscreen(self, keep_aspect_ratio)
 
@@ -115,14 +116,16 @@ class PGSurface(Canvas):
         self.unlock_pixel_array()
         return Canvas.add_noise(self, grain_size, percentage, colour)
 
+
 class Plotter(PGSurface):
     """Pygame Plotter"""
+
     def __init__(self, n_data_rows, data_row_colours,
-                width = 600, y_range = (-100, 100),
-                background_colour = (40, 40, 40),
-                marker_colour = (200,200,200),
-                position= None,
-                axis_colour = None):
+                 width=600, y_range=(-100, 100),
+                 background_colour=(40, 40, 40),
+                 marker_colour=(200, 200, 200),
+                 position=None,
+                 axis_colour=None):
         self.n_data_rows = n_data_rows
         self.data_row_colours = data_row_colours
         self.width = width
@@ -130,12 +133,12 @@ class Plotter(PGSurface):
         self.background_colour = background_colour
         self.marker_colour = marker_colour
         if axis_colour is None:
-                self.axis_colour = background_colour
+            self.axis_colour = background_colour
         else:
-                self.axis_colour = axis_colour
+            self.axis_colour = axis_colour
         self._previous = [None] * n_data_rows
         PGSurface.__init__(self, size=(self.width, self._height),
-                        position = position)
+                           position=position)
         self.clear_area()
 
     @property
@@ -148,7 +151,7 @@ class Plotter(PGSurface):
         self._y_range = values
         self._height = self._y_range[1] - self._y_range[0]
         self._plot_axis = (self._y_range[0] <= 0 and \
-                            self._y_range[1] >= 0)
+                           self._y_range[1] >= 0)
 
     @property
     def data_row_colours(self):
@@ -159,33 +162,33 @@ class Plotter(PGSurface):
         """data_row_colours: list of colour"""
         try:
             if not isinstance(values[0], list) and \
-                not isinstance(values[0], tuple): # one dimensional
+                    not isinstance(values[0], tuple):  # one dimensional
                 values = [values]
         except:
-            values = [[]] # values is not listpixel_array
+            values = [[]]  # values is not listpixel_array
         if len(values) != self.n_data_rows:
             raise RuntimeError('Number of data row colour does not match the ' +
-                    'defined number of data rows!')
+                               'defined number of data rows!')
         self._data_row_colours = values
 
     def clear_area(self):
         self.pixel_array[:, :] = self.background_colour
         if self._plot_axis:
-            self.pixel_array[:, self._y_range[1]:self._y_range[1]+1] =\
-                        self.axis_colour
+            self.pixel_array[:, self._y_range[1]:self._y_range[1] + 1] = \
+                self.axis_colour
 
     def update_values(self, values, set_marker=False):
         """
         """
         if type(values) is not Numpy_array_type and \
-               not isinstance(values, tuple) and \
+                not isinstance(values, tuple) and \
                 not isinstance(values, list):
             values = [values]
-        if len(values)!= self.n_data_rows:
+        if len(values) != self.n_data_rows:
             raise RuntimeError('Number of data values does not match the ' +
-                    'defined number of data rows!')
+                               'defined number of data rows!')
 
-        #move plot one pixel to the left
+        # move plot one pixel to the left
         self.pixel_array[:-1, :] = self.pixel_array[1:, :]
 
         if set_marker:
@@ -193,18 +196,18 @@ class Plotter(PGSurface):
         else:
             self.pixel_array[-1, :] = self.background_colour
         if self._plot_axis and self.axis_colour != self.background_colour:
-            self.pixel_array[-1, self._y_range[1]:self._y_range[1]+1] =\
-                        self.axis_colour
+            self.pixel_array[-1, self._y_range[1]:self._y_range[1] + 1] = \
+                self.axis_colour
 
         for c, plot_value in enumerate(self._y_range[1] - np.array(values, dtype=int)):
             if plot_value >= 0 and self._previous[c] >= 0 \
                     and plot_value <= self._height and \
-                    self._previous[c] <= self._height:
+                            self._previous[c] <= self._height:
                 if self._previous[c] > plot_value:
-                    self.pixel_array[-1, plot_value:self._previous[c]+1] = \
+                    self.pixel_array[-1, plot_value:self._previous[c] + 1] = \
                         self._data_row_colours[c]
                 else:
-                    self.pixel_array[-1, self._previous[c]:plot_value+1] = \
+                    self.pixel_array[-1, self._previous[c]:plot_value + 1] = \
                         self._data_row_colours[c]
             self._previous[c] = plot_value
         

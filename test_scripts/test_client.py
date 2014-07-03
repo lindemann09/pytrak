@@ -1,7 +1,11 @@
 # test client udo connection
 from expyriment import control, stimuli, io, misc
 from expyriment.misc import Clock
+
 from trakstar import UDPConnection
+
+
+
 
 # t : test connect
 # q : quit client
@@ -22,7 +26,7 @@ stimuli.TextLine("connected to " + udp.peer_ip).present()
 
 c = Clock()
 
-##udp.send("maximum: 72")
+# #udp.send("maximum: 72")
 ##udp.send("measurement: 25")
 ##udp.send("filename: test")
 ##udp.send("report: 5")
@@ -88,6 +92,6 @@ while True:
 
     feedback = udp.poll()
     if feedback is not None:
-        print "<-- ", c.time,  feedback    
+        print "<-- ", c.time, feedback
 
 udp.unconnect_peer()
