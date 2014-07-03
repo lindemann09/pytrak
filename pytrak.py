@@ -17,11 +17,10 @@ trakstar = TrakSTARInterface()
 print "Initialize TrakSTAR"
 trakstar.initialize()
 
-
 def get_monitor_resolution():
     """Returns the monitor resolution
 
-    Returns
+    Returns n
     -------
     resolution: (int, int)
         monitor resolution, screen resolution
@@ -69,7 +68,7 @@ if key == ord("y") or key == ord("z"):
         stimuli.TextLine(text="Waiting for settings...").present()
         exp.clock.wait(50)
         if s is not None:
-            get_udp_input(s)
+            settings.get_udp_input(s)
         s = trakstar.udp.poll()
     trakstar.udp.send('confirm')
 #manual control
@@ -79,10 +78,11 @@ else:
     stimuli.TextLine(text="Change TrakSTAR settings? (Y/N)").present()
     key = exp.keyboard.wait([ord("z"), ord("y"), ord("n")])[0]
     if key == ord("y") or key == ord("z"):
+        menu = settings.get_menu()
         menu.present()
         key = exp.keyboard.wait(range(ord("1"),ord("5")+1)+[ord("q")])[0]
         while key != ord("q"):
-            get_input(int(chr(int(key))))
+            settings.get_input(int(chr(int(key))))
             menu.present()
             key = exp.keyboard.wait(range(ord("1"),ord("5")+1)+[ord("q")])[0]
 
@@ -112,19 +112,18 @@ for sensor in trakstar.attached_sensors:
 
 # make text lines
 def text_line(text, position, text_size=15, text_colour = (255, 150, 50)):
-    return stimuli.TextLine(text_line, position = position,
+    return stimuli.TextLine(text, position = position,
                     text_size = text_size, text_colour=text_colour)
 sz = control.defaults.window_size
 txt_v = text_line("v: visualize sensors", [-sz[0]/2+100, -sz[1]/2+50])
 txt_p = text_line("p: pause/unpause", [0, -sz[1]/2+50])
 txt_q = text_line("q: quit recording", [sz[0]/2-100, -sz[1]/2+50])
-txt_fn = text_line(("filename: " + settings.filename,
+txt_fn = text_line("filename: " + filename,
                         position=[-sz[0]/2+100, sz[1]/2-50])
 txt_date = text_line("date: {0}".format(strftime("%d/%m/%Y")),
                             position=[sz[0]/2-100, sz[1]/2-50])
 info_txts = [txt_v, txt_p, txt_q, txt_fn, txt_date]
-
-txt_pause = text_line("PAUSED", position=[0,-50], text_size=50))
+txt_pause = text_line("PAUSED", position=[0,-50], text_size=50)
 
 
 def update_circles(trakstar,circles, history):
@@ -218,8 +217,6 @@ while True:
             elif udp_input.lower() == 'quit':
                 trakstar.udp.send('confirm')
                 break
-
-
 
 
 trakstar.close_data_file()
