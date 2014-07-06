@@ -27,6 +27,7 @@ class TrakSTARInterface(object):
         self.self.system_configuration = None
         self.attached_sensors = None
         self.init_time = None
+        self._is_init = False
 
         self.udp = UDPConnection()
         print self.udp
@@ -36,14 +37,16 @@ class TrakSTARInterface(object):
         self.close(ignore_error=True)
 
     def close(self, ignore_error=True):
+        if not self.is_init:
+            return
         print "* closing trakstar"
         self.close_data_file()
         self.attached_sensors = None
-        self.init_time = None
         self.system_configuration = None
         error_code = api.CloseBIRDSystem()
         if error_code != 0 and not ignore_error:
             self.error_handler(error_code)
+        self._is_init = False
 
     def open_data_file(self, filename, directory="data", suffix=".csv",
                        time_stamp_filename=True, write_angles=False,
@@ -104,21 +107,17 @@ class TrakSTARInterface(object):
         for x in range(self.system_configuration.numberSensors):
             api.SetSensorParameter(ctypes.c_ushort(x),
                                    api.SensorParameterType.DATA_FORMAT,
-                                   ctypes.pointer(api.DataFormatType.DOUBLE_POSITION_ANGLES_TIME_Q),
+                ctypes.pointer(api.DataFormatType.DOUBLE_POSITION_ANGLES_TIME_Q),
                                    4)
         self.reset_timer()
-        print "Done."
+        self._is_init = True
 
     def reset_timer(self):
         self.init_time = time()
 
-        # #        d = self.get_synchronous_data_dict(write_data_file=False)
-
-    ##        self.init_time = d["time"] / float(1000)
-
     def is_init(self):
-        """Returns if trak ist initialized"""
-        return (self.init_time is not None)
+        """Returns True if trakstar is initialized"""
+        return self._is_init
 
     def _error_handler(self, error_code):
         print "** Error: ", error_code

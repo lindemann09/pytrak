@@ -1,4 +1,5 @@
 from time import strftime
+from threading import Thread
 
 from expyriment import control, stimuli, design, io, misc
 
@@ -33,11 +34,12 @@ def get_monitor_resolution():
             pygame.display.Info().current_h)
 
 
-def initialize():
+def initialize(ask_for_remote_control):
+    """returns remote control if asked for"""
     globals trakstar, exp
     trakstar = TrakSTARInterface()
-    print "Initialize TrakSTAR"
-    trakstar.initialize() #TODO as thread
+    thr_init_trackstar = Thread(target = trakstar.initialize)
+    thr_init_trackstar.start()
 
     screen_size = get_monitor_resolution()
 
@@ -53,19 +55,26 @@ def initialize():
     exp = design.Experiment()
     exp.set_log_level(0)
     control.initialize(exp)
-    #TODO wait thread
-    udp = trakstar.udp
+    
+    if ask_for_remote_control:
+        stimuli.TextLine(text="Use remote control? (Y/N)").present()
+        key = exp.keyboard.wait([ord("z"), ord("y"), ord("n")])[0]
+        if key == ord("y") or key == ord("z"):
+            remote_control = True
+        else
+            remote_control = False
+    else:
+        remote_control = None
 
-    stimuli.TextLine(text="Trakstar initialized").present()
-
-
-def ask_remote_control(exp):
-    stimuli.TextLine(text="Use remote control? (Y/N)").present()
-    key = exp.keyboard.wait([ord("z"), ord("y"), ord("n")])[0]
-    if key == ord("y") or key == ord("z"):
-        return True
-    else
-        return False
+    stimuli.TextLine(text="Trakstar is initializing...").present()
+    thr_init_trackstar.join() # wait finishing trackstar thread
+    if trakstar.is_init: 
+        udp = trakstar.udp
+        stimuli.TextLine(text="Trakstar initialized").present()
+    else:
+        stimuli.TextLine(text="Trakstar failed to initialize").present()
+        exp.keyboard.wait()
+    return remote_control
 
 def prepare_recoding(remote_control):
     """get filename, allow changing of settings
@@ -170,11 +179,10 @@ def present_recording_screen(pause=False):
     canvas.present()
 
 def end():
-    if trakstar is None or exp is None:
-        raise RuntimeError("Pytrak not initialized")
-    trakstar.close_data_file()
-    trakstar.close()
-    stimuli.TextLine(text="Closing trakSTAR").present()
+    if trakstar is not None:
+        stimuli.TextLine(text="Closing trakSTAR").present()
+        trakstar.close_data_file()
+        trakstar.close()
     control.end()
 
 def record_data(remote_control):
@@ -239,12 +247,16 @@ def record_data(remote_control):
                     break
 
 def run(remote_control = None):
+    globals trakstar, exp, udp
     print "Pytrak", __version__
-    initialize()
     if remote_control is None:
-        remote_control = ask_remote_control()
+        remote_control = initialize(ask_for_remote_control = True)
+    else:
+        initialize(ask_for_remote_control = False)
+    if not trakstar.is_init:
+        end()
     prepare_recoding(remote_control)
-    wait_for_start_recording_event(remote_control),
+    wait_for_start_recording_event(remote_control)
     record_data(remote_control)
     end()
 
