@@ -4,6 +4,7 @@ import numpy as np
 import pygame
 from expyriment.stimuli import Canvas
 from expyriment.stimuli._visual import Visual
+from lock_expyriment import lock_expyriment
 
 Numpy_array_type = type(np.array([]))
 
@@ -219,10 +220,7 @@ class Plotter(PGSurface):
 
 class PlotterThread(threading.Thread):
 
-    lock_expyriment_plotting = threading.Lock()
-
     def __init__(self, exp, refesh_time):
-        """ Experiment"""
         super(PlotterThread, self).__init__()
         self._plotter = Plotter(n_data_rows = 2,
             data_row_colours =[ (255,0,0), (0, 255, 0)],
@@ -242,15 +240,22 @@ class PlotterThread(threading.Thread):
         self._stop_request.set()
         super(PlotterThread, self).join(timeout)
 
+    def is_updated(self):
+        self.lock_new_values.acquire()
+        if len(self._new_values) > 0:
+            rtn = False
+        else:
+            rtn = True
+        self.lock_new_values.release()
+        return rtn
+
     def run(self):
         """the plotter thread is constantly updating the the
         pixel_area and """
         update_screen = True
         last_plot_time = 0
 
-        while True:
-            if self._stop_request.is_set():
-                break
+        while not self._stop_request.is_set():
             # get data
             self.lock_new_values.acquire()
             values = self._new_values
@@ -273,11 +278,11 @@ class PlotterThread(threading.Thread):
             if update_screen and \
                 time.time() - last_plot_time > self.refesh_time:
                 # expyriment plot
-                PlotterThread.lock_expyriment_plotting.acquire()
+                lock_expyriment.acquire()
                 self._plotter.present(update=False, clear=False)
-                self._exp.screen.update_stimuli([self._plotter])
-                PlotterThread.lock_expyriment_plotting.release()
-
+                self._exp.screen.update_stimuli([self._plotter]) #TODO: update screen outsite, exp not required
+                lock_expyriment.release()
+                update_screen = False
                 last_plot_time = time.time()
 
 

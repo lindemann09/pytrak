@@ -139,7 +139,7 @@ def prepare_recoding(remote_control):
 
 
 def text_line(text, position, text_size=15, text_colour=(255, 150, 50)):
-    "helper function"""
+    """helper function"""
     return stimuli.TextLine(text, position=position,
                             text_size=text_size, text_colour=text_colour)
 
