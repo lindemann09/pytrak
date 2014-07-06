@@ -1,10 +1,11 @@
+import time
+import threading
 import numpy as np
 import pygame
 from expyriment.stimuli import Canvas
 from expyriment.stimuli._visual import Visual
 
 Numpy_array_type = type(np.array([]))
-
 
 def inherit_docs(cls):
     for name, func in vars(cls).items():
@@ -177,6 +178,28 @@ class Plotter(PGSurface):
             self.pixel_array[:, self._y_range[1]:self._y_range[1] + 1] = \
                 self.axis_colour
 
+    def write_values(self, position, values, set_marker=False):
+        if set_marker:
+            self.pixel_array[position, :] = self.marker_colour
+        else:
+            self.pixel_array[position, :] = self.background_colour
+        if self._plot_axis and self.axis_colour != self.background_colour:
+            self.pixel_array[position, self._y_range[1]:self._y_range[1] + 1] = \
+                self.axis_colour
+
+        for c, plot_value in enumerate(self._y_range[1] - \
+                    np.array(values, dtype=int)):
+            if plot_value >= 0 and self._previous[c] >= 0 \
+                    and plot_value <= self._height and \
+                            self._previous[c] <= self._height:
+                if self._previous[c] > plot_value:
+                    self.pixel_array[position, plot_value:self._previous[c] + 1] = \
+                        self._data_row_colours[c]
+                else:
+                    self.pixel_array[position, self._previous[c]:plot_value + 1] = \
+                        self._data_row_colours[c]
+            self._previous[c] = plot_value
+
     def update_values(self, values, set_marker=False):
         """
         """
@@ -190,24 +213,76 @@ class Plotter(PGSurface):
 
         # move plot one pixel to the left
         self.pixel_array[:-1, :] = self.pixel_array[1:, :]
+        self.write_values(position=-1, values=values, set_marker=set_marker)
 
-        if set_marker:
-            self.pixel_array[-1, :] = self.marker_colour
-        else:
-            self.pixel_array[-1, :] = self.background_colour
-        if self._plot_axis and self.axis_colour != self.background_colour:
-            self.pixel_array[-1, self._y_range[1]:self._y_range[1] + 1] = \
-                self.axis_colour
 
-        for c, plot_value in enumerate(self._y_range[1] - np.array(values, dtype=int)):
-            if plot_value >= 0 and self._previous[c] >= 0 \
-                    and plot_value <= self._height and \
-                            self._previous[c] <= self._height:
-                if self._previous[c] > plot_value:
-                    self.pixel_array[-1, plot_value:self._previous[c] + 1] = \
-                        self._data_row_colours[c]
-                else:
-                    self.pixel_array[-1, self._previous[c]:plot_value + 1] = \
-                        self._data_row_colours[c]
-            self._previous[c] = plot_value
-        
+
+class PlotterThread(threading.Thread):
+
+    lock_expyriment_plotting = threading.Lock()
+
+    def __init__(self, exp, refesh_time):
+        """ Experiment"""
+        super(PlotterThread, self).__init__()
+        self._plotter = Plotter(n_data_rows = 2,
+            data_row_colours =[ (255,0,0), (0, 255, 0)],
+            width=500,
+            background_colour=(0,0,0),
+            axis_colour = (100,100,100))
+        self._exp = exp
+        self._new_values = []
+        self.lock_new_values = threading.Lock()
+        self._stop_request = threading.Event()
+        self.refesh_time = refesh_time
+
+    def stop(self):
+        self.join()
+
+    def join(self, timeout=None):
+        self._stop_request.set()
+        super(PlotterThread, self).join(timeout)
+
+    def run(self):
+        """the plotter thread is constantly updating the the
+        pixel_area and """
+        update_screen = True
+        last_plot_time = 0
+
+        while True:
+            if self._stop_request.is_set():
+                break
+            # get data
+            self.lock_new_values.acquire()
+            values = self._new_values
+            self._new_values = []
+            self.lock_new_values.release() # release to receive new values
+
+            n = len(values)
+            if n > 0:
+                update_screen = True
+                if n > self._plotter.width:
+                    values = values[-1*self._plotter.width:] #only the last
+                    n = len(values)
+                self._plotter.pixel_array[:-1*n, :] = \
+                        self._plotter.pixel_array[n:, :]
+                for x in range(-1*n, 0):
+                    self._plotter.write_values(position = x,
+                            values = values[x][0],
+                            set_marker = values[x][1])
+
+            if update_screen and \
+                time.time() - last_plot_time > self.refesh_time:
+                # expyriment plot
+                PlotterThread.lock_expyriment_plotting.acquire()
+                self._plotter.present(update=False, clear=False)
+                self._exp.screen.update_stimuli([self._plotter])
+                PlotterThread.lock_expyriment_plotting.release()
+
+                last_plot_time = time.time()
+
+
+    def new_values(self, values, set_marker=False):
+        """adds new values to the plotter"""
+        self.lock_new_values.acquire()
+        self._new_values.append((values, set_marker))
+        self.lock_new_values.release()
