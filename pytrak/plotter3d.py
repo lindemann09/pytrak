@@ -43,5 +43,3 @@ class Plotter3d(object):
             for s in range(self.n_sensors):
                 self.plotter_array[s].update_values(mtx[:, s])
                 self.plotter_array[s].present(update=False, clear=False)
-
-            
