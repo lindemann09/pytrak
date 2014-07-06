@@ -164,12 +164,12 @@ while True:
 
         exp.clock.reset_stopwatch()
         pl_thread.new_values((y,y2), marker)
-        if exp.clock.stopwatch_time >= 3: print exp.clock.stopwatch_time
 
-        if x % 1000==0:
+        if x % 100==0:
             t = stimuli.TextLine(str(x), position=(0, 200))
             display.add_present_stimuli([t])
             display.update_request()
+        if exp.clock.stopwatch_time >= 3: print exp.clock.stopwatch_time
 
         exp.clock.wait(10)
 

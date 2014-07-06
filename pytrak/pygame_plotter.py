@@ -257,10 +257,12 @@ class PlotterThread(threading.Thread):
 
         while not self._stop_request.is_set():
             # get data
-            self.lock_new_values.acquire()
-            values = self._new_values
-            self._new_values = []
-            self.lock_new_values.release() # release to receive new values
+            if self.lock_new_values.acquire(False):
+                values = self._new_values
+                self._new_values = []
+                self.lock_new_values.release() # release to receive new values
+            else:
+                values = []
 
             n = len(values)
             if n > 0:
