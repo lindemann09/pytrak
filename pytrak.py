@@ -1,2 +1,2 @@
-import pytrak.pytrak_main
-pytrak.pytrak_main.run()
+import pytrak.main
+pytrak.main.run(remote_control = None)

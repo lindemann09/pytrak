@@ -10,8 +10,11 @@ from trakstar import TrakSTARInterface
 
 __author__ = 'Raphael Wallroth <>, \
 Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>'
-__version__ = '0.2'
+__version__ = '0.2.2'
 
+trakstar = None
+exp = None
+udp = None
 
 def get_monitor_resolution():
     """Returns the monitor resolution
@@ -31,7 +34,7 @@ def get_monitor_resolution():
 
 
 def initialize():
-    """return: trakstar, expyriment experiment, remote_control"""
+    globals trakstar, exp
     trakstar = TrakSTARInterface()
     print "Initialize TrakSTAR"
     trakstar.initialize() #TODO as thread
@@ -50,22 +53,27 @@ def initialize():
     exp = design.Experiment()
     exp.set_log_level(0)
     control.initialize(exp)
+    #TODO wait thread
+    udp = trakstar.udp
 
+    stimuli.TextLine(text="Trakstar initialized").present()
+
+
+def ask_remote_control(exp):
     stimuli.TextLine(text="Use remote control? (Y/N)").present()
     key = exp.keyboard.wait([ord("z"), ord("y"), ord("n")])[0]
     if key == ord("y") or key == ord("z"):
-        remote_control = True
+        return True
     else
-        remote_control = False
-    return trakstar, exp, remote_control
+        return False
 
-
-def prepare_recoding(trakstar, exp, remote_control, udp):
+def prepare_recoding(remote_control):
     """get filename, allow changing of settings
     and make connection in remote control mode
-
-    returns the filename
     """
+
+    if trakstar is None or exp is None:
+        raise RuntimeError("Pytrak not initialized")
     # remote control
     if remote_control:
         filename = ""
@@ -100,19 +108,25 @@ def prepare_recoding(trakstar, exp, remote_control, udp):
                             [ord("q")])[0]
 
     #set system settings
-    trakstar.set_system_configuration(measurement_rate=settings.measurement_rate,
-                                      max_range=settings.max_range,
-                                      power_line=settings.power_line,
-                                      metric=settings.metric,
-                                      report_rate=settings.report_rate,
-                                      print_configuration=True)
+    trakstar.set_system_configuration(
+                            measurement_rate = settings.measurement_rate,
+                            max_range = settings.max_range,
+                            power_line = settings.power_line,
+                            metric = settings.metric,
+                            report_rate = settings.report_rate,
+                            print_configuration = True)
 
-    trakstar.open_data_file(filename=filename, directory="data",
-                            suffix=".csv", time_stamp_filename=True,
-                            write_angles=False, write_quality=True,
-                            write_udp=remote_control,
-                            write_cpu_times=False) #TODO: in settings
-    return filename
+    comment_str = "Motion tracking data recorded with " + \
+                   "Pytrak " + str(__version__)
+    trakstar.open_data_file(filename = filename,
+                            directory = "data",
+                            suffix = ".csv",
+                            time_stamp_filename = True,
+                            write_angles = False,
+                            write_quality = True,
+                            write_udp = remote_control,
+                            write_cpu_times = False,
+                            comment_line = comment_str) #TODO: in settings
 
 
 def text_line(text, position, text_size=15, text_colour=(255, 150, 50)):
@@ -120,7 +134,9 @@ def text_line(text, position, text_size=15, text_colour=(255, 150, 50)):
     return stimuli.TextLine(text, position=position,
                             text_size=text_size, text_colour=text_colour)
 
-def wait_for_start_recording_event(udp, exp, remote_control):
+def wait_for_start_recording_event(remote_control):
+    if trakstar is None or exp is None:
+        raise RuntimeError("Pytrak not initialized")
     if remote_control:
         udp.poll_last_data()  #clear buffer
         stimuli.TextLine(text="Waiting to start recording...").present()
@@ -133,11 +149,13 @@ def wait_for_start_recording_event(udp, exp, remote_control):
         exp.keyboard.wait()
 
 def present_recording_screen(pause=False):
+    if trakstar is None or exp is None:
+        raise RuntimeError("Pytrak not initialized")
     sz = control.defaults.window_size
     txt_v = text_line("v: visualize sensors", [-sz[0] / 2 + 100, -sz[1] / 2 + 50])
     txt_p = text_line("p: pause/unpause", [0, -sz[1] / 2 + 50])
     txt_q = text_line("q: quit recording", [sz[0] / 2 - 100, -sz[1] / 2 + 50])
-    txt_fn = text_line("filename: " + filename,
+    txt_fn = text_line("filename: " + trakstar.filename,
                        position=[-sz[0] / 2 + 100, sz[1] / 2 - 50])
     txt_date = text_line("date: {0}".format(strftime("%d/%m/%Y")),
                          position=[sz[0] / 2 - 100, sz[1] / 2 - 50])
@@ -152,12 +170,17 @@ def present_recording_screen(pause=False):
     canvas.present()
 
 def end():
+    if trakstar is None or exp is None:
+        raise RuntimeError("Pytrak not initialized")
     trakstar.close_data_file()
     trakstar.close()
     stimuli.TextLine(text="Closing trakSTAR").present()
     control.end()
 
-def record_data(trakstar, exp, remote_control, udp):
+def record_data(remote_control):
+    if trakstar is None or exp is None:
+        raise RuntimeError("Pytrak not initialized")
+
     scale = 1
     pause = False
     plotter = Plotter3d(attached_sensors=trakstar.attached_sensors)
@@ -215,11 +238,14 @@ def record_data(trakstar, exp, remote_control, udp):
                     udp.send('confirm')
                     break
 
-def run():
-    trakstar, exp, remote_control = initialize()
-    filename = prepare_recoding(trakstar, exp, remote_control, trakstar.udp)
-    wait_for_start_recording_event(trakstar.udp, exp, remote_control),
-    record_data(trakstar, exp, remote_control, trakstar.udp)
+def run(remote_control = None):
+    print "Pytrak", __version__
+    initialize()
+    if remote_control is None:
+        remote_control = ask_remote_control()
+    prepare_recoding(remote_control)
+    wait_for_start_recording_event(remote_control),
+    record_data(remote_control)
     end()
 
 if __name__ == "__main__":

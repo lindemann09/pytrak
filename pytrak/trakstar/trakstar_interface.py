@@ -3,7 +3,6 @@ from pytrak.trakstar import atc3dg_functions as api
 
 __author__ = 'Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>,\
 Raphael Wallroth <>'
-__version__ = '0.2.3'
 
 import os
 import ctypes
@@ -17,15 +16,19 @@ class TrakSTARInterface(object):
     def __init__(self):
         self._record = api.DOUBLE_POSITION_ANGLES_TIME_Q_RECORD_AllSensors_Four()
         self._precord = ctypes.pointer(self._record)
-        self.attached_sensors = None
-        self.init_time = None
         self._file = None
         self._write_quality = None
         self._write_angles = None
         self._write_udp = None
-        self.system_configuration = None
-        self.udp = UDPConnection()
         self._last_cpu_time = 0
+
+        self.filename = None
+        self.directory = None
+        self.self.system_configuration = None
+        self.attached_sensors = None
+        self.init_time = None
+
+        self.udp = UDPConnection()
         print self.udp
         atexit.register(self.close)
 
@@ -45,7 +48,7 @@ class TrakSTARInterface(object):
     def open_data_file(self, filename, directory="data", suffix=".csv",
                        time_stamp_filename=True, write_angles=False,
                        write_quality=False, write_cpu_times=False,
-                       write_udp=True):
+                       write_udp=True, comment_line=""):
         """if data file is open, data will be recorded"""
         self._write_angles = write_angles
         self._write_quality = write_quality
@@ -57,15 +60,14 @@ class TrakSTARInterface(object):
 
         if filename is None or len(filename) == 0:
             filename = "pytrak_recording"
-
-        fullname = directory + os.path.sep + filename
         if time_stamp_filename:
-            fullname = fullname + "_" + strftime("%Y%m%d%H%M", localtime())
-        fullname = fullname + suffix
-        self._file = open(fullname, 'w+')
-        self._file.write("# Motion tracking data recorded with " + \
-                         "PyTrak interface " + str(__version__) + \
-                         "\n")
+            filename = filename + "_" + strftime("%Y%m%d%H%M", localtime())
+        filename = filename + suffix
+        self.filename = filename
+        self.directory = directory
+        self._file = open(directory + os.path.sep + filename, 'w+')
+        if len(comment_line)>0:
+            self._file.write("#" + comment_line + "\n")
         varnames = "time,sensor,x,y,z"
         if write_angles:
             varnames += ",a,e,r"
