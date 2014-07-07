@@ -1,8 +1,8 @@
 """TrakSTARInterface"""
 from pytrak.trakstar import atc3dg_functions as api
 
-__author__ = 'Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>,\
-Raphael Wallroth <>'
+__author__ = 'Raphael Wallroth <rwallroth@uni-potsdam.de>, \
+Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>'
 
 import os
 import ctypes
@@ -24,7 +24,7 @@ class TrakSTARInterface(object):
 
         self.filename = None
         self.directory = None
-        self.self.system_configuration = None
+        self.system_configuration = None
         self.attached_sensors = None
         self.init_time = None
         self._is_init = False
@@ -89,7 +89,7 @@ class TrakSTARInterface(object):
             self._file.close()
 
     def initialize(self):
-        if self.is_init():
+        if self.is_init:
             return
         print "* Initializing trakstar ..."
         error_code = api.InitializeBIRDSystem()
@@ -115,6 +115,7 @@ class TrakSTARInterface(object):
     def reset_timer(self):
         self.init_time = time()
 
+    @property
     def is_init(self):
         """Returns True if trakstar is initialized"""
         return self._is_init

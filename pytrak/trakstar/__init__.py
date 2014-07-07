@@ -1,6 +1,6 @@
 """Python interface for traskSTAR api"""
 
-__author__ = 'Raphael Wallroth <> \
+__author__ = 'Raphael Wallroth <rwallroth@uni-potsdam.de>, \
 Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>'
 __version__ = 0.3
 

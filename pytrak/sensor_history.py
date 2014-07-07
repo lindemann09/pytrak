@@ -1,9 +1,5 @@
 """Sensor History with moving average filtering and distance, velocity"""
 
-__author__ = 'Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>,\
-Raphael Wallroth <>'
-__version__ = 0.1
-
 import math
 
 

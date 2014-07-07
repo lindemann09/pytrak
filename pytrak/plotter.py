@@ -4,7 +4,9 @@ import numpy as np
 import pygame
 from expyriment.stimuli import Canvas
 from expyriment.stimuli._visual import Visual
+
 from lock_expyriment import lock_expyriment
+import settings
 
 Numpy_array_type = type(np.array([]))
 
@@ -293,3 +295,43 @@ class PlotterThread(threading.Thread):
         self.lock_new_values.acquire()
         self._new_values.append((values, set_marker))
         self.lock_new_values.release()
+
+class Plotter3d(object):
+    def __init__(self, attached_sensors):
+        self.n_sensors = len(attached_sensors)
+        row_colours = []
+        for sensor in attached_sensors:
+            row_colours.append(settings.colours[sensor])
+
+        self.plotter_array = []
+        self.plotter_array.append(Plotter(n_data_rows=self.n_sensors,
+                                          data_row_colours=row_colours,
+                                          width=settings.plotter_width,
+                                          position=(0, 150),
+                                          background_colour=settings.plotter_background_colour,
+                                          axis_colour=settings.plotter_axis_colour))
+        self.plotter_array.append(Plotter(n_data_rows=self.n_sensors,
+                                          data_row_colours=row_colours,
+                                          width=settings.plotter_width,
+                                          position=(0, 0),
+                                          background_colour=settings.plotter_background_colour,
+                                          axis_colour=settings.plotter_axis_colour))
+        self.plotter_array.append(Plotter(n_data_rows=self.n_sensors,
+                                          data_row_colours=row_colours,
+                                          width=settings.plotter_width,
+                                          position=(0, -150),
+                                          background_colour=settings.plotter_background_colour,
+                                          axis_colour=settings.plotter_axis_colour))
+        self._start_values = None
+        self.scale = 1
+
+    def update_values(self, data):
+        mtx = np.array([data[1][0:3], data[2][0:3], data[3][0:3]]) * self.scale
+        mtx = mtx.astype(int)
+        if self._start_values is None:
+            self._start_values = mtx
+        else:
+            mtx = mtx - self._start_values
+            for s in range(self.n_sensors):
+                self.plotter_array[s].update_values(mtx[:, s])
+                self.plotter_array[s].present(update=False, clear=False)

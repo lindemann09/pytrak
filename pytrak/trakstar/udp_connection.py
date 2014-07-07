@@ -2,7 +2,6 @@
 """
 
 __author__ = "Oliver Lindemann <oliver@expyriment.org>"
-__version__ = ''
 
 import os
 from time import sleep, time
