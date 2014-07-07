@@ -35,7 +35,7 @@ while True:
 
     t = stimuli.TextLine(str(x), position=(0, 150))
     exp.clock.reset_stopwatch()
-    pl.update_values((y, y2), set_marker=marker)
+    pl.add_values((y, y2), set_marker=marker)
     # print exp.clock.stopwatch_time
     #plot    t.present(update=False, clear=True)
     pl.present(update=False, clear=False)

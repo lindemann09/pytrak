@@ -1,4 +1,6 @@
 """TrakSTARInterface"""
+import threading
+from copy import copy
 from pytrak.trakstar import atc3dg_functions as api
 
 __author__ = 'Raphael Wallroth <rwallroth@uni-potsdam.de>, \
@@ -280,3 +282,84 @@ class TrakSTARInterface(object):
             self._error_handler(error_code)
 
         self.read_configurations(print_configuration=print_configuration)
+
+
+class TrakSTARRecordingThread(threading.Thread):
+    def __init__(self, trakstar_interface):
+        """
+        :param trakstar_interface_instrance
+                    a initialize trakstar object that is ready for recording
+        :return:
+        """
+        super(TrakSTARRecordingThread, self).__init__()
+        self._last_data = {}
+        self._n_missed_datasets = 0
+
+        self._stop_request = threading.Event()
+        self._lock = threading.Lock()
+        self._new_data_flag = threading.Event()
+        self._recording_flag = threading.Event()
+
+        self.trakstar = trakstar_interface
+        if not isinstance(self.trakstar, TrakSTARInterface) or \
+                not self.trakstar.is_init:
+            raise RuntimeError("Not a initialized trakstar interface object")
+        self._recording_flag.clear()
+
+    def stop(self):
+        self.join(timeout=1000)
+
+    def join(self, timeout=None):
+        self._stop_request.set()
+        self.pause_recording()
+        super(TrakSTARRecordingThread, self).join(timeout)
+
+    def start(self):
+        if not isinstance(self.trakstar, TrakSTARInterface) or \
+                not self.trakstar.is_init:
+            raise RuntimeError("TrakSTAR not initialized")
+        else:
+            self.trakstar.reset_timer()
+            self._recording_flag.clear()
+            super(TrakSTARRecordingThread, self).start()
+
+    @property
+    def is_paused(self):
+        return self._recording_flag.is_set()
+
+    def start_recording(self):
+        self._recording_flag.set()
+
+    def pause_recording(self):
+        self._recording_flag.clear()
+
+    def get_data(self, wait_new_data=False):
+        """return last data set and the number of missed data
+        returns None is no new data available
+        """
+
+        if wait_new_data:
+            self._new_data_flag.wait()
+        if self._new_data_flag.is_set():
+            self._lock.acquire()
+            rtn = (copy(self._last_data), self._n_missed_datasets)
+            self._lock.release()
+            self._new_data_flag.clear()
+        else:
+            rtn = (None, 0)
+        return rtn
+
+    def run(self):
+        while not self._stop_request.is_set():
+            if self._recording_flag.is_set():
+                data = self.trakstar.get_synchronous_data_dict()
+                self._lock.acquire()
+                self._last_data = data
+                if self._new_data_flag.is_set():
+                    self._n_missed_datasets += 1
+                else:
+                    self._n_missed_datasets = 0
+                    self._new_data_flag.set()
+                self._lock.release()
+            else:
+                self._recording_flag.wait(timeout=0.2)

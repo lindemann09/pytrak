@@ -16,9 +16,10 @@ metric = True
 
 circle_diameter = 40
 
-plotter_width = 500
-plotter_background_colour = (0, 0, 0)
+plotter_width = 1000
+plotter_background_colour = (10, 10, 10)
 plotter_axis_colour = (100, 100, 100)
+plotter_height = 180
 ####
 
 

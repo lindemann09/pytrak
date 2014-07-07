@@ -1,4 +1,3 @@
-import time
 import threading
 import numpy as np
 import pygame
@@ -9,6 +8,7 @@ from lock_expyriment import lock_expyriment
 import settings
 
 Numpy_array_type = type(np.array([]))
+
 
 def inherit_docs(cls):
     for name, func in vars(cls).items():
@@ -101,8 +101,8 @@ class PGSurface(Canvas):
 
     # expyriment 0.8.0
     # def scale_to_fullscreen(self, keep_aspect_ratio=True):
-    #    self.unlock_pixel_array()
-    #    return Canvas.scale_to_fullscreen(self, keep_aspect_ratio)
+    # self.unlock_pixel_array()
+    # return Canvas.scale_to_fullscreen(self, keep_aspect_ratio)
 
     def flip(self, booleans):
         self.unlock_pixel_array()
@@ -126,7 +126,7 @@ class Plotter(PGSurface):
 
     def __init__(self, n_data_rows, data_row_colours,
                  width=600, y_range=(-100, 100),
-                 background_colour=(40, 40, 40),
+                 background_colour=(180, 180, 180),
                  marker_colour=(200, 200, 200),
                  position=None,
                  axis_colour=None):
@@ -134,7 +134,7 @@ class Plotter(PGSurface):
         self.data_row_colours = data_row_colours
         self.width = width
         self.y_range = y_range
-        self.background_colour = background_colour
+        self._background_colour = background_colour
         self.marker_colour = marker_colour
         if axis_colour is None:
             self.axis_colour = background_colour
@@ -176,7 +176,7 @@ class Plotter(PGSurface):
         self._data_row_colours = values
 
     def clear_area(self):
-        self.pixel_array[:, :] = self.background_colour
+        self.pixel_array[:, :] = self._background_colour
         if self._plot_axis:
             self.pixel_array[:, self._y_range[1]:self._y_range[1] + 1] = \
                 self.axis_colour
@@ -185,25 +185,27 @@ class Plotter(PGSurface):
         if set_marker:
             self.pixel_array[position, :] = self.marker_colour
         else:
-            self.pixel_array[position, :] = self.background_colour
-        if self._plot_axis and self.axis_colour != self.background_colour:
+            self.pixel_array[position, :] = self._background_colour
+        if self._plot_axis and self.axis_colour != self._background_colour:
             self.pixel_array[position, self._y_range[1]:self._y_range[1] + 1] = \
                 self.axis_colour
 
         for c, plot_value in enumerate(self._y_range[1] - \
-                    np.array(values, dtype=int)):
+                np.array(values, dtype=int)):
             if plot_value >= 0 and self._previous[c] >= 0 \
                     and plot_value <= self._height and \
                             self._previous[c] <= self._height:
                 if self._previous[c] > plot_value:
-                    self.pixel_array[position, plot_value:self._previous[c] + 1] = \
+                    self.pixel_array[position,
+                    plot_value:self._previous[c] + 1] = \
                         self._data_row_colours[c]
                 else:
-                    self.pixel_array[position, self._previous[c]:plot_value + 1] = \
+                    self.pixel_array[position,
+                    self._previous[c]:plot_value + 1] = \
                         self._data_row_colours[c]
             self._previous[c] = plot_value
 
-    def update_values(self, values, set_marker=False):
+    def add_values(self, values, set_marker=False):
         """
         """
         if type(values) is not Numpy_array_type and \
@@ -219,21 +221,24 @@ class Plotter(PGSurface):
         self.write_values(position=-1, values=values, set_marker=set_marker)
 
 
-
 class PlotterThread(threading.Thread):
-
-    def __init__(self, exp, refesh_time):
+    def __init__(self, n_data_rows, data_row_colours,
+                 width=600, y_range=(-100, 100),
+                 background_colour=(180, 180, 180),
+                 marker_colour=(200, 200, 200),
+                 position=None,
+                 axis_colour=None):
         super(PlotterThread, self).__init__()
-        self._plotter = Plotter(n_data_rows = 2,
-            data_row_colours =[ (255,0,0), (0, 255, 0)],
-            width=500,
-            background_colour=(0,0,0),
-            axis_colour = (100,100,100))
-        self._exp = exp
+        self._plotter = Plotter(n_data_rows=n_data_rows,
+                                data_row_colours=data_row_colours,
+                                width=width, y_range=y_range,
+                                background_colour=background_colour,
+                                marker_colour=marker_colour,
+                                position=position,
+                                axis_colour=axis_colour)
         self._new_values = []
-        self.lock_new_values = threading.Lock()
+        self._lock_new_values = threading.Lock()
         self._stop_request = threading.Event()
-        self.refesh_time = refesh_time
 
     def stop(self):
         self.join()
@@ -242,90 +247,84 @@ class PlotterThread(threading.Thread):
         self._stop_request.set()
         super(PlotterThread, self).join(timeout)
 
-    def is_updated(self):
-        self.lock_new_values.acquire()
-        if len(self._new_values) > 0:
-            rtn = False
-        else:
-            rtn = True
-        self.lock_new_values.release()
-        return rtn
-
     def run(self):
         """the plotter thread is constantly updating the the
-        pixel_area and """
-        update_screen = True
-        last_plot_time = 0
+        pixel_area"""
 
         while not self._stop_request.is_set():
             # get data
-            if self.lock_new_values.acquire(False):
+            if self._lock_new_values.acquire(False):
                 values = self._new_values
                 self._new_values = []
-                self.lock_new_values.release() # release to receive new values
+                self._lock_new_values.release()  # release to receive new values
             else:
                 values = []
 
             n = len(values)
             if n > 0:
-                update_screen = True
                 if n > self._plotter.width:
-                    values = values[-1*self._plotter.width:] #only the last
+                    values = values[-1 * self._plotter.width:]  # only the last
                     n = len(values)
-                self._plotter.pixel_array[:-1*n, :] = \
-                        self._plotter.pixel_array[n:, :]
-                for x in range(-1*n, 0):
-                    self._plotter.write_values(position = x,
-                            values = values[x][0],
-                            set_marker = values[x][1])
-
-            if update_screen and \
-                time.time() - last_plot_time > self.refesh_time:
+                self._plotter.pixel_array[:-1 * n, :] = \
+                    self._plotter.pixel_array[n:, :]
+                for x in range(-1 * n, 0):
+                    self._plotter.write_values(position=x,
+                                               values=values[x][0],
+                                               set_marker=values[x][1])
                 # expyriment plot
                 lock_expyriment.acquire()
                 self._plotter.present(update=False, clear=False)
-                self._exp.screen.update_stimuli([self._plotter]) #TODO: update screen outsite, exp not required
                 lock_expyriment.release()
-                update_screen = False
-                last_plot_time = time.time()
 
 
-    def new_values(self, values, set_marker=False):
+    def add_values(self, values, set_marker=False):
         """adds new values to the plotter"""
-        self.lock_new_values.acquire()
+        self._lock_new_values.acquire()
         self._new_values.append((values, set_marker))
-        self.lock_new_values.release()
+        self._lock_new_values.release()
 
-class Plotter3d(object):
-    def __init__(self, attached_sensors):
+
+class PlotterXYZ(object):
+    def __init__(self, attached_sensors, expyriment_screen_size, refresh_time):
+        self.refresh_time = refresh_time
         self.n_sensors = len(attached_sensors)
         row_colours = []
         for sensor in attached_sensors:
             row_colours.append(settings.colours[sensor])
 
         self.plotter_array = []
-        self.plotter_array.append(Plotter(n_data_rows=self.n_sensors,
-                                          data_row_colours=row_colours,
-                                          width=settings.plotter_width,
-                                          position=(0, 150),
-                                          background_colour=settings.plotter_background_colour,
-                                          axis_colour=settings.plotter_axis_colour))
-        self.plotter_array.append(Plotter(n_data_rows=self.n_sensors,
-                                          data_row_colours=row_colours,
-                                          width=settings.plotter_width,
-                                          position=(0, 0),
-                                          background_colour=settings.plotter_background_colour,
-                                          axis_colour=settings.plotter_axis_colour))
-        self.plotter_array.append(Plotter(n_data_rows=self.n_sensors,
-                                          data_row_colours=row_colours,
-                                          width=settings.plotter_width,
-                                          position=(0, -150),
-                                          background_colour=settings.plotter_background_colour,
-                                          axis_colour=settings.plotter_axis_colour))
-        self._start_values = None
-        self.scale = 1
+        self._update_rects = []
+        h = settings.plotter_height
+        for position in [(0, h+5), (0, 0), (0, -(h+5))]:
+            plotter_thread = PlotterThread(n_data_rows=self.n_sensors,
+                        data_row_colours=row_colours,
+                        y_range=(-h/2, h/2),
+                        width=settings.plotter_width,
+                        position=position,
+                        background_colour=settings.plotter_background_colour,
+                        axis_colour=settings.plotter_axis_colour)
+            self.plotter_array.append(plotter_thread)
+            self._update_rects.append(
+                PlotterXYZ._get_plotter_rect(plotter_thread._plotter,
+                                    expyriment_screen_size))
 
-    def update_values(self, data):
+        self._start_values = None
+        self.scale = 0.5
+
+    @staticmethod
+    def _get_plotter_rect(plotter, screen_size):
+            half_screen_size = (screen_size[0] / 2, screen_size[1] / 2)
+            pos = plotter.absolute_position
+            stim_size = plotter.surface_size
+            rect_pos = (pos[0] + half_screen_size[0] - stim_size[0] / 2,
+                            - pos[1] + half_screen_size[1] - stim_size[1] / 2)
+            return pygame.Rect(rect_pos, stim_size)
+
+    @property
+    def update_rects(self):
+        return self._update_rects
+
+    def add_values(self, data, set_marker=False):
         mtx = np.array([data[1][0:3], data[2][0:3], data[3][0:3]]) * self.scale
         mtx = mtx.astype(int)
         if self._start_values is None:
@@ -333,5 +332,22 @@ class Plotter3d(object):
         else:
             mtx = mtx - self._start_values
             for s in range(self.n_sensors):
-                self.plotter_array[s].update_values(mtx[:, s])
-                self.plotter_array[s].present(update=False, clear=False)
+                self.plotter_array[s].add_values(mtx[:, s],
+                                    set_marker = set_marker)
+
+    def start(self):
+        """plotter threads"""
+        for plotter in self.plotter_array:
+            plotter.start()
+
+    def stop(self):
+        """stop plotter threads"""
+        for plotter in self.plotter_array:
+            plotter.stop()
+
+    def update(self):
+        lock_expyriment.acquire()
+        pygame.display.update(self.update_rects)
+        lock_expyriment.release()
+
+

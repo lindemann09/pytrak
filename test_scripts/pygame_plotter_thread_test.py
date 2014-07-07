@@ -1,7 +1,7 @@
 import threading
 import numpy as np
 from expyriment import control, stimuli, misc
-from pygame_plotter import PlotterThread
+from plotter import PlotterThread
 from lock_expyriment import lock_expyriment
 import time
 
@@ -126,7 +126,7 @@ el.append(text_line("date: {0}".format(time.strftime("%d/%m/%Y")),
 txt_pause = text_line("PAUSED", position=[0, 0], text_size=50)
 
 
-pl_thread = PlotterThread(exp, refesh_time = 0.01)
+pl_thread = PlotterThread(exp, refresh_time= 0.01)
 display = DisplayThread(exp)
 
 #pl = Plotter(n_data_rows = 1, data_row_colours =[ (0, 255, 0)])
@@ -163,7 +163,7 @@ while True:
         y2 = int(np.sin(x/1000.0) * np.cos(x/40.0) * 90)
 
         exp.clock.reset_stopwatch()
-        pl_thread.new_values((y,y2), marker)
+        pl_thread.add_values((y,y2), marker)
 
         if x % 100==0:
             t = stimuli.TextLine(str(x), position=(0, 200))

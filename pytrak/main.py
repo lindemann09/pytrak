@@ -6,13 +6,13 @@ from expyriment import control, stimuli, design, io, misc
 
 from pytrak import settings
 from sensor_history import SensorHistory
-from plotter import Plotter3d
-from trakstar import TrakSTARInterface
+from plotter import PlotterXYZ
+from trakstar import TrakSTARInterface, TrakSTARRecordingThread
 
 
 __author__ = 'Raphael Wallroth <rwallroth@uni-potsdam.de>, \
 Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>'
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 trakstar = None
 exp = None
@@ -208,26 +208,38 @@ def record_data(remote_control):
 
     scale = 1
     pause = False
-    plotter = Plotter3d(attached_sensors=trakstar.attached_sensors)
     history = {} # make history
     for sensor in trakstar.attached_sensors:
         history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
 
     present_recording_screen()
-    trakstar.reset_timer()
+
+    plotter = PlotterXYZ(attached_sensors=trakstar.attached_sensors,
+                         expyriment_screen_size=exp.screen.size,
+                         refresh_time = 0.02)
+    plotter.start()
+    trakstar_thread = TrakSTARRecordingThread(trakstar)
+    trakstar_thread.start()
+    trakstar_thread.start_recording()
     exp.keyboard.clear()
 
+    refresh_interval = 0.02
+    refresh_timer = misc.Clock()
     while True:
         if not pause:
-            data = trakstar.get_synchronous_data_dict()  #polls udp while unpaused
-            udp_input = data['udp'] # temporary variable to check for udp input
+            data, n_missed_data = trakstar_thread.get_data(wait_new_data=False)
+            #exp.clock.reset_stopwatch()
+            if data is not None:
+                udp_input = data['udp'] # temporary variable to check for udp input
                                     # read in by trakstar.get_synchronous_data_dict()
-            exp.clock.reset_stopwatch()
-            #for sensor in trakstar.attached_sensors:
-            #    history[sensor].update(data[sensor][:3])
-            plotter.update_values(data)
-            exp.screen.update_stimuli(plotter.plotter_array)
-            print exp.clock.stopwatch_time
+                #for sensor in trakstar.attached_sensors:
+                #    history[sensor].update(data[sensor][:3])
+                plotter.add_values(data, set_marker=False)
+                if refresh_timer.stopwatch_time >=refresh_interval:
+                    #exp.clock.reset_stopwatch()
+                    plotter.update()
+                    refresh_timer.stopwatch_time
+                    #print exp.clock.stopwatch_time
         else:
             if remote_control:
                 if udp_input.lower() == 'pause':
@@ -242,8 +254,8 @@ def record_data(remote_control):
                     #if you wish to have the 'unpause' command in your data output,
                     # you'll have to send it twice!
 
-        key = exp.keyboard.check()
-        if key == ord("q"):
+        key = exp.keyboard.check(check_for_control_keys=False)
+        if key == ord("q") or key == misc.constants.K_ESCAPE:
             break
         elif key == ord("p"):
             pause = not pause
@@ -263,6 +275,9 @@ def record_data(remote_control):
                     udp.send('confirm')
                     break
 
+    plotter.stop()
+    trakstar_thread.stop()
+
 def run(remote_control = None, filename=None):
     global trakstar, exp, udp
     print "Pytrak", __version__
@@ -271,8 +286,6 @@ def run(remote_control = None, filename=None):
     else:
         initialize(ask_for_remote_control = False)
     if not trakstar.is_init:
-        logo_text_line(text="Problems initializing TrakSTAR").present()
-        exp.keyboard.wait()
         end()
         #raw_input("Press <Enter> to close....")
 
