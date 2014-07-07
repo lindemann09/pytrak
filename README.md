@@ -4,7 +4,7 @@ PyTrak
 Python api wrapper & recording server for 3D Guidance trakSTAR
 
 *GNU General Public License v3*  
-Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu> & Raphael Wallroth <rwallroth@uni-potsdam.de>
+Oliver Lindemann (oliver.lindemann@cognitive-psychology.eu) & Raphael Wallroth (rwallroth@uni-potsdam.de)
 
 **NOTE**: So far, the Python api wrapper is still experimental and has been merely tested under Windows.
 
