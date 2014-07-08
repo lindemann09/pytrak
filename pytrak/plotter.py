@@ -309,7 +309,7 @@ class PlotterXYZ(object):
                                     expyriment_screen_size))
 
         self._start_values = None
-        self.scale = 0.5
+        self.scaling = 0.5
 
     @staticmethod
     def _get_plotter_rect(plotter, screen_size):
@@ -325,7 +325,7 @@ class PlotterXYZ(object):
         return self._update_rects
 
     def add_values(self, data, set_marker=False):
-        mtx = np.array([data[1][0:3], data[2][0:3], data[3][0:3]]) * self.scale
+        mtx = np.array([data[1][0:3], data[2][0:3], data[3][0:3]]) * self.scaling
         mtx = mtx.astype(int)
         if self._start_values is None:
             self._start_values = mtx
@@ -349,5 +349,3 @@ class PlotterXYZ(object):
         lock_expyriment.acquire()
         pygame.display.update(self.update_rects)
         lock_expyriment.release()
-
-

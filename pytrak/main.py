@@ -16,7 +16,7 @@ __version__ = '0.2.0'
 
 trakstar = None
 exp = None
-udp = None
+udp = None #TODO:udp_connection
 
 def logo_text_line(text):
     blank = stimuli.Canvas(size=(600, 400))
@@ -125,8 +125,8 @@ def prepare_recoding(remote_control, filename=None):
             filename = io.TextInput("filename:",
                                     background_stimulus=bkg).get()
         logo_text_line(text="Change TrakSTAR settings? (y/N)").present()
-        key = exp.keyboard.wait([ord("z"), ord("y"), ord("n"), misc.constants.K_SPACE,
-                                 misc.constants.K_RETURN, ])[0]
+        key = exp.keyboard.wait([ord("z"), ord("y"), ord("n"), 
+                        misc.constants.K_SPACE, misc.constants.K_RETURN, ])[0]
         if key == ord("y") or key == ord("z"):
             menu = settings.get_menu()
             menu.present()
@@ -157,7 +157,6 @@ def prepare_recoding(remote_control, filename=None):
                             write_udp = remote_control,
                             write_cpu_times = False,
                             comment_line = comment_str) #TODO: in settings
-
 
 
 def wait_for_start_recording_event(remote_control):
@@ -202,81 +201,104 @@ def end():
         trakstar.close()
     control.end("Quitting Pytrak",goodbye_delay=0, fast_quit=True)
 
+class Command:
+    quit = 1
+    toggle_pause = 2
+    increase_scaling = 3
+    decrease_scaling = 4
+    normalize_plotting = 5
+
+def process_key_input(key=None):
+    """processes input from key and udp port
+    """
+    if key == misc.constants.K_q or key == misc.constants.K_ESCAPE:
+        return Command.quit
+    elif key == misc.constants.K_p:
+        return Command.toggle_pause
+   elif key == misc.constants.K_UP:
+        return Command.increase_scaling
+   elif key == misc.constants.K_DOWN:
+        return Command.decrease_scaling
+   elif key == misc.constants.K_n:
+        return Command.normalize_plotting
+    return None
+
+def process_udp_input(udp_input):
+    """maps udp input to keys and returns the key command"""
+    udp_command = udp_input.lower()
+    if udp_command == 'quit':
+        udp.send('confirm')
+        return process_key_input("q")
+    elif udp_command == 'toggle_pause':
+        udp.send('confirm')
+        return process_key_input("p")
+    return None
+
+
 def record_data(remote_control):
     if trakstar is None or exp is None:
         raise RuntimeError("Pytrak not initialized")
 
-    scale = 1
-    pause = False
-    history = {} # make history
-    for sensor in trakstar.attached_sensors:
-        history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
+    refresh_interval = 0.02
+    refresh_timer = misc.Clock()
+    #history = {} # make history
+    #for sensor in trakstar.attached_sensors:
+    #    history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
+
 
     present_recording_screen()
 
+    #start trakstar thread
+    trakstar_thread = TrakSTARRecordingThread(trakstar)
+    trakstar_thread.start()
+    # start plotter threads
     plotter = PlotterXYZ(attached_sensors=trakstar.attached_sensors,
                          expyriment_screen_size=exp.screen.size,
                          refresh_time = 0.02)
     plotter.start()
-    trakstar_thread = TrakSTARRecordingThread(trakstar)
-    trakstar_thread.start()
-    trakstar_thread.start_recording()
+
     exp.keyboard.clear()
-
-    refresh_interval = 0.02
-    refresh_timer = misc.Clock()
-    while True:
-        if not pause:
-            data, n_missed_data = trakstar_thread.get_data(wait_new_data=False)
-            #exp.clock.reset_stopwatch()
-            if data is not None:
-                udp_input = data['udp'] # temporary variable to check for udp input
-                                    # read in by trakstar.get_synchronous_data_dict()
-                #for sensor in trakstar.attached_sensors:
-                #    history[sensor].update(data[sensor][:3])
-                plotter.add_values(data, set_marker=False)
-                if refresh_timer.stopwatch_time >=refresh_interval:
-                    #exp.clock.reset_stopwatch()
-                    plotter.update()
-                    refresh_timer.stopwatch_time
-                    #print exp.clock.stopwatch_time
-        else:
-            if remote_control:
-                if udp_input.lower() == 'pause':
-                    pause = True
-                    present_recording_screen(pause=pause)
-                    udp_input = '0'  #reset the pause command to None
-                s = udp.poll()  #polls udp while paused
-                if s is not None and s.lower() == 'unpause':
-                    pause = False
-                    present_recording_screen(pause=False)
-                    udp.send('confirm')
-                    #if you wish to have the 'unpause' command in your data output,
-                    # you'll have to send it twice!
-
+    trakstar_thread.start_recording()
+    quit_recording = False
+    while not quit_recording:
+        # process keyboard
         key = exp.keyboard.check(check_for_control_keys=False)
-        if key == ord("q") or key == misc.constants.K_ESCAPE:
-            break
-        elif key == ord("p"):
-            pause = not pause
-            present_recording_screen(pause=pause)
-        elif key == misc.constants.K_UP:
-            plotter.scale += 0.01
-        elif key == misc.constants.K_DOWN:
-            plotter.scale -= 0.01
+        command_array = [process_key_input(key)]
 
-        if remote_control:
-            if udp_input != '0':
-                if udp_input.lower() == 'pause':
-                    pause = True
-                    udp.send('confirm')
-                    present_recording_screen(pause=pause)
-                elif udp_input.lower() == 'quit':
-                    udp.send('confirm')
-                    break
+        # get data and process
+        data_array = trakstar_thread.get_data_array()
+        for data in data_array:
+            plotter.add_values(data, set_marker=len(data['udp']) > 0)
+            if remote_control:
+                command_array.append(process_udp_input(data['udp']))
+            #for sensor in trakstar.attached_sensors:
+            #    history[sensor].update(data[sensor][:3])
+
+        # refresh screen once in a while
+        if refresh_timer.stopwatch_time >=refresh_interval:
+            plotter.update()
+            refresh_timer.stopwatch_time
+
+        # process commands of last loop
+        for command in filter(lambda x:x is not None, command_array):
+            if command == Command.quit:
+                quit_recording = True
+                break
+            elif command == Command.toggle_pause:
+                if trakstar_thread.is_recording()
+                    present_recording_screen(pause=True)
+                    trakstar_thread.pause_recording()
+                else:
+                    present_recording_screen(pause=False)
+                    trakstar_thread.start_recording()
+            elif command == Command.increase_scaling:
+                plotter.scaling += 0.01
+            elif command == Command.decrease_scaling:
+                plotter.scaling -= 0.01
 
     plotter.stop()
     trakstar_thread.stop()
+
 
 def run(remote_control = None, filename=None):
     global trakstar, exp, udp

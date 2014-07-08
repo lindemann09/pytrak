@@ -1,6 +1,5 @@
 """TrakSTARInterface"""
 import threading
-from copy import copy
 from pytrak.trakstar import atc3dg_functions as api
 
 __author__ = 'Raphael Wallroth <rwallroth@uni-potsdam.de>, \
@@ -14,7 +13,45 @@ import numpy as np
 from udp_connection import UDPConnection
 
 
+def data_dict2string(data_dict, angles=False, quality=False, times=True,
+                cpu_times=False, udp=True):
+    txt = ""
+    for sensor in range(1, 5):
+        if data_dict.has_key(sensor):
+            if times:
+                txt = txt + "{0},".format(data_dict["time"])
+            txt = txt + "%d,%.4f,%.4f,%.4f" % \
+                        (sensor, data_dict[sensor][0],
+                         data_dict[sensor][1], data_dict[sensor][2])
+            if angles:
+                txt = txt + ",%.4f,%.4f,%.4f" % (data_dict[sensor][3],
+                                                 data_dict[sensor][4],
+                                                 data_dict[sensor][5])
+            if quality:
+                txt = txt + ",{0}".format(data_dict[sensor][6])
+            if udp:
+                txt = txt + ",{0}".format(data_dict["udp"])
+            if cpu_times:
+                txt = txt + ",{0}".format(data_dict["cpu_time"])
+
+            txt = txt + "\n"
+    return txt[:-1]
+
+def get_attached_sensors(data_dic):
+    """return an array with the ids of attached sensors from a data dict"""
+    return filter(lambda x:data_dic.has_key(x), [1,2,3,4])
+
+
+def copy_data_dict(old):
+    """deep copy of the data dict"""
+    new = old.copy()
+    # copy of numpyarray for each attached sensor
+    for s in filter(lambda x:new.has_key(x), [1,2,3,4]):
+        new[s] = np.copy(old[s])
+    return new
+
 class TrakSTARInterface(object):
+    """ The trakSTAR interface"""
     def __init__(self):
         self._record = api.DOUBLE_POSITION_ANGLES_TIME_Q_RECORD_AllSensors_Four()
         self._precord = ctypes.pointer(self._record)
@@ -22,7 +59,6 @@ class TrakSTARInterface(object):
         self._write_quality = None
         self._write_angles = None
         self._write_udp = None
-        self._last_cpu_time = 0
 
         self.filename = None
         self.directory = None
@@ -133,39 +169,11 @@ class TrakSTARInterface(object):
         raise RuntimeError("** trakSTAR Error")
 
 
-    @staticmethod
-    def data2string(data_dict, angles=False, quality=False, times=True,
-                    cpu_times=False, udp=True):
-        txt = ""
-        for sensor in range(1, 5):
-            if data_dict.has_key(sensor):
-                if times:
-                    txt = txt + "{0},".format(data_dict["time"])
-                txt = txt + "%d,%.4f,%.4f,%.4f" % \
-                            (sensor, data_dict[sensor][0],
-                             data_dict[sensor][1], data_dict[sensor][2])
-                if angles:
-                    txt = txt + ",%.4f,%.4f,%.4f" % (data_dict[sensor][3],
-                                                     data_dict[sensor][4], data_dict[sensor][5])
-                if quality:
-                    txt = txt + ",{0}".format(data_dict[sensor][6])
-                if udp:
-                    txt = txt + ",{0}".format(data_dict["udp"])
-                if cpu_times:
-                    txt = txt + ",{0}".format(data_dict["cpu_time"])
-
-                txt = txt + "\n"
-        return txt[:-1]
-
     def get_synchronous_data_dict(self, write_data_file=True):
         """polling data"""
         error_code = api.GetSynchronousRecord(api.ALL_SENSORS,
                                               self._precord, 4 * 1 * 64)
         cpu_time = int((time() - self.init_time) * 1000)
-        sampling_delay = cpu_time - self._last_cpu_time
-        self._last_cpu_time = cpu_time
-        #if sampling_delay > 10:
-        #    print sampling_delay
         trakstar_time = int((self._record.time0 - self.init_time) * 1000)
         if error_code != 0:
             self._error_handler(error_code)
@@ -199,11 +207,11 @@ class TrakSTARInterface(object):
             d["udp"] = udp_data
 
         if self._file is not None and write_data_file:
-            self._file.write(TrakSTARInterface.data2string(d,
-                                                           angles=self._write_angles,
-                                                           quality=self._write_quality,
-                                                           udp=self._write_udp,
-                                                           cpu_times=self._write_cpu_times) + "\n")
+            self._file.write(data_dict2string(d,
+                               angles=self._write_angles,
+                               quality=self._write_quality,
+                               udp=self._write_udp,
+                               cpu_times=self._write_cpu_times) + "\n")
 
         return d
 
@@ -292,8 +300,7 @@ class TrakSTARRecordingThread(threading.Thread):
         :return:
         """
         super(TrakSTARRecordingThread, self).__init__()
-        self._last_data = {}
-        self._n_missed_datasets = 0
+        self._last_data = [] # array of the last data
 
         self._stop_request = threading.Event()
         self._lock = threading.Lock()
@@ -320,33 +327,44 @@ class TrakSTARRecordingThread(threading.Thread):
             raise RuntimeError("TrakSTAR not initialized")
         else:
             self.trakstar.reset_timer()
-            self._recording_flag.clear()
+            self.pause_recording()
             super(TrakSTARRecordingThread, self).start()
 
     @property
-    def is_paused(self):
+    def is_recording(self):
         return self._recording_flag.is_set()
 
     def start_recording(self):
+        self._last_data = []
         self._recording_flag.set()
 
     def pause_recording(self):
         self._recording_flag.clear()
 
-    def get_data(self, wait_new_data=False):
-        """return last data set and the number of missed data
-        returns None is no new data available
+    def wait_new_data(self, timeout=None):
+        """waits for new data, but returns immediately if recording is
+        paused.
+
+        Returns True if new data are available
+        """
+        if self.is_recording:
+            return self._new_data_flag.wait(timeout)
+        else
+            return False
+
+    def get_data_array(self):
+        """returns an array of the last acquired data (array of data_dicts).
+        If not data are available it returns am empty array
         """
 
-        if wait_new_data:
-            self._new_data_flag.wait()
         if self._new_data_flag.is_set():
             self._lock.acquire()
-            rtn = (copy(self._last_data), self._n_missed_datasets)
+            rtn = map(lambda x:copy_data_dict(x), self._last_data)
+            self._last_data = []
             self._lock.release()
             self._new_data_flag.clear()
         else:
-            rtn = (None, 0)
+            rtn = []
         return rtn
 
     def run(self):
@@ -354,12 +372,8 @@ class TrakSTARRecordingThread(threading.Thread):
             if self._recording_flag.is_set():
                 data = self.trakstar.get_synchronous_data_dict()
                 self._lock.acquire()
-                self._last_data = data
-                if self._new_data_flag.is_set():
-                    self._n_missed_datasets += 1
-                else:
-                    self._n_missed_datasets = 0
-                    self._new_data_flag.set()
+                self._last_data.append(data)
+                self._new_data_flag.set()
                 self._lock.release()
             else:
                 self._recording_flag.wait(timeout=0.2)
