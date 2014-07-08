@@ -31,7 +31,6 @@ class PGSurface(Canvas):
     """
 
     def __init__(self, size, position=None, colour=None):
-        # TODO: defaults
         Canvas.__init__(self, size, position, colour)
         self._px_array = None
 
@@ -224,7 +223,7 @@ class Plotter(PGSurface):
 class PlotterThread(threading.Thread):
     def __init__(self, n_data_rows, data_row_colours,
                  width=600, y_range=(-100, 100),
-                 background_colour=(180, 180, 180),
+                 background_colour=(80, 80, 80),
                  marker_colour=(200, 200, 200),
                  position=None,
                  axis_colour=None):
@@ -271,7 +270,7 @@ class PlotterThread(threading.Thread):
                     self._plotter.write_values(position=x,
                                                values=values[x][0],
                                                set_marker=values[x][1])
-                # expyriment plot
+                # Expyriment present
                 lock_expyriment.acquire()
                 self._plotter.present(update=False, clear=False)
                 lock_expyriment.release()
@@ -309,7 +308,7 @@ class PlotterXYZ(object):
                                     expyriment_screen_size))
 
         self._start_values = None
-        self.scaling = 0.5
+        self.scaling = settings.plotter_scaling
 
     @staticmethod
     def _get_plotter_rect(plotter, screen_size):
@@ -323,6 +322,9 @@ class PlotterXYZ(object):
     @property
     def update_rects(self):
         return self._update_rects
+
+    def reset_start_values(self):
+        self._start_values = None
 
     def add_values(self, data, set_marker=False):
         mtx = np.array([data[1][0:3], data[2][0:3], data[3][0:3]]) * self.scaling

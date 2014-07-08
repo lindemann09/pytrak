@@ -30,7 +30,10 @@ def data_dict2string(data_dict, angles=False, quality=False, times=True,
             if quality:
                 txt = txt + ",{0}".format(data_dict[sensor][6])
             if udp:
-                txt = txt + ",{0}".format(data_dict["udp"])
+                if len(data_dict["udp"])>0:
+                    txt = txt + ",{0}".format(data_dict["udp"])
+                else:
+                    txt = txt + ",0"
             if cpu_times:
                 txt = txt + ",{0}".format(data_dict["cpu_time"])
 
@@ -202,7 +205,7 @@ class TrakSTARInterface(object):
                              self._record.quality3])
 
         if udp_data is None:
-            d["udp"] = "0"
+            d["udp"] = ""
         else:
             d["udp"] = udp_data
 
@@ -349,7 +352,7 @@ class TrakSTARRecordingThread(threading.Thread):
         """
         if self.is_recording:
             return self._new_data_flag.wait(timeout)
-        else
+        else:
             return False
 
     def get_data_array(self):
