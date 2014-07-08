@@ -1,4 +1,4 @@
-#Motion tracking data recorded with Pytrak 0.2.0
+  #Motion tracking data recorded with Pytrak 0.2.0
 time,sensor,x,y,z,quality
 8,1,117.8719,-60.7219,-268.7836,1272.0
 8,2,112.9605,-53.3549,-268.5604,988.0

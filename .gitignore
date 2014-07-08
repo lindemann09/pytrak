@@ -37,6 +37,7 @@ var/
 .pydevproject
 
 # Sphinx documentation
+*.npz
 docs/_build/
 
 events/
