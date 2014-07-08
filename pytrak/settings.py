@@ -5,22 +5,32 @@
 
 import atexit
 import ConfigParser
-from expyriment import stimuli, misc
+from expyriment import stimuli, misc, io
 
-# ## settings ###
+#####
+#  overwritten by existing config file
 measurement_rate = 80
 max_range = 36
 report_rate = 1
 power_line = 60
 metric = True
+#####
 
-circle_diameter = 40
+cfg_filename = "pytrak.cfg"
+cfg_section = 'TrakStar'
 
 plotter_width = 1000
 plotter_background_colour = (10, 10, 10)
 plotter_axis_colour = (100, 100, 100)
 plotter_height = 180
 plotter_scaling = 0.3
+
+data_dir = "data"
+data_suffix = ".csv"
+data_time_stamps = False
+data_write_angles = False
+data_write_cpu_time = False
+data_write_quality = True
 ####
 
 class Command:
@@ -33,9 +43,6 @@ colours = {1: misc.constants.C_RED,
            4: misc.constants.C_BLUE}
 
 t_wait = 1500
-cfg_filename = "pytrak.cfg"
-cfg_section = 'TrakStar'
-
 
 def save():
     config = ConfigParser.RawConfigParser()
@@ -44,7 +51,6 @@ def save():
     config.set(cfg_section, "max_range", max_range)
     config.set(cfg_section, "report_rate", report_rate)
     config.set(cfg_section, "power_line", power_line)
-    config.set(cfg_section, "circle_diameter", circle_diameter)
     config.set(cfg_section, "metric", metric)
     with open(cfg_filename, 'wb') as configfile:
         config.write(configfile)
@@ -61,7 +67,6 @@ def read():
         max_range = config.getint(cfg_section, 'max_range')
         report_rate = config.getint(cfg_section, 'report_rate')
         power_line = config.getint(cfg_section, 'power_line')
-        circle_diameter = config.getint(cfg_section, 'circle_diameter')
         metric = config.getboolean(cfg_section, 'metric')
     except:
         print "Creating settings file: ", cfg_filename
@@ -69,6 +74,9 @@ def read():
         return False
     return True
 
+def reording_settings_info_screen():
+
+    stimuli.TextBox()
 
 def get_menu(exp):
     return stimuli.TextScreen("Settings:",
@@ -82,11 +90,9 @@ def get_menu(exp):
                               size=[exp.screen.size[0] / 4,
                                     exp.screen.size[1] / 2])
 
-
 def invalid_value(exp):
     stimuli.TextLine(text="Invalid value!").present()
     exp.clock.wait(t_wait)
-
 
 def get_input(exp, i):
     global measurement_rate, max_range, report_rate, power_line, metric

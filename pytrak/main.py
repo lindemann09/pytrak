@@ -45,8 +45,13 @@ def get_monitor_resolution():
     return (pygame.display.Info().current_w,
             pygame.display.Info().current_h)
 
-def initialize(ask_for_remote_control):
-    """returns remote control if asked for"""
+def initialize(remote_control=None, filename=None):
+    """returns remote_control and file
+
+     If remote_control or filename is None, the function will ask it (user input)
+
+     """
+
     global trakstar, udp_connection, exp
     trakstar = TrakSTARInterface()
     thr_init_trackstar = Thread(target = trakstar.initialize)
@@ -68,15 +73,19 @@ def initialize(ask_for_remote_control):
     control.initialize(exp)
     exp.mouse.show_cursor()
 
-    if ask_for_remote_control:
-        logo_text_line(text="Use remote control? (Y/N)").present()
-        key = exp.keyboard.wait([ord("z"), ord("y"), ord("n")])[0]
+    if remote_control is None:
+        logo_text_line(text="Use remote control? (y/N)").present()
+        key = exp.keyboard.wait([ord("z"), ord("y"), ord("n"),
+                        misc.constants.K_SPACE, misc.constants.K_RETURN ])[0]
         if key == ord("y") or key == ord("z"):
             remote_control = True
         else:
             remote_control = False
-    else:
-        remote_control = None
+
+    if filename is None:
+        bkg = logo_text_line("")
+        filename = io.TextInput("Filename", background_stimulus=bkg).get()
+        filename = filename.replace(" ", "_")
 
     logo_text_line(text="Trakstar is initializing...").present()
     thr_init_trackstar.join() # wait finishing trackstar thread
@@ -87,13 +96,13 @@ def initialize(ask_for_remote_control):
     else:
         logo_text_line(text="Trakstar failed to initialize").present()
         exp.keyboard.wait()
-    return remote_control
+    return remote_control, filename
 
-def prepare_recoding(remote_control, filename=None):
+def prepare_recoding(remote_control, filename):
     """get filename, allow changing of settings
     and make connection in remote control mode
     """
-
+    # todo: display configuration
     if trakstar is None or exp is None:
         raise RuntimeError("Pytrak not initialized")
     # remote control
@@ -115,19 +124,15 @@ def prepare_recoding(remote_control, filename=None):
         udp_connection.send('confirm')
     #manual control
     else:
-        if filename is None:
-            bkg = logo_text_line("")
-            filename = io.TextInput("Filename",
-                                    background_stimulus=bkg).get()
         logo_text_line(text="Change TrakSTAR settings? (y/N)").present()
         key = exp.keyboard.wait([ord("z"), ord("y"), ord("n"),
-                        misc.constants.K_SPACE, misc.constants.K_RETURN, ])[0]
+                        misc.constants.K_SPACE, misc.constants.K_RETURN ])[0]
         if key == ord("y") or key == ord("z"):
-            menu = settings.get_menu()
+            menu = settings.get_menu(exp)
             menu.present()
             key = exp.keyboard.wait(range(ord("1"), ord("5") + 1) + [ord("q")])[0]
             while key != ord("q"):
-                settings.get_input(int(chr(int(key))))
+                settings.get_input(exp, int(chr(int(key))))
                 menu.present()
                 key = exp.keyboard.wait(range(ord("1"), ord("5") + 1) +
                             [ord("q")])[0]
@@ -144,14 +149,14 @@ def prepare_recoding(remote_control, filename=None):
     comment_str = "Motion tracking data recorded with " + \
                    "Pytrak " + str(__version__)
     trakstar.open_data_file(filename = filename,
-                            directory = "data",
-                            suffix = ".csv",
-                            time_stamp_filename = True,
-                            write_angles = False,
-                            write_quality = True,
+                            directory = settings.data_dir,
+                            suffix = settings.data_suffix,
+                            time_stamp_filename = settings.data_time_stamps,
+                            write_angles = settings.data_write_angles,
+                            write_quality = settings.data_write_quality,
                             write_udp = remote_control,
-                            write_cpu_times = False,
-                            comment_line = comment_str) #TODO: in settings
+                            write_cpu_times = settings.data_write_cpu_time,
+                            comment_line = comment_str)
 
 
 def wait_for_start_recording_event(remote_control, recording_screen):
@@ -282,16 +287,12 @@ def record_data(remote_control, recording_screen):
 def run(remote_control = None, filename=None):
     global trakstar, exp, udp_connection
     print "Pytrak", __version__
-    if remote_control is None:
-        remote_control = initialize(ask_for_remote_control = True)
-    else:
-        initialize(ask_for_remote_control = False)
+    remote_control, filename = initialize(remote_control, filename)
     if not trakstar.is_init:
         end()
         #raw_input("Press <Enter> to close....")
 
     prepare_recoding(remote_control=remote_control, filename=filename)
-
     recording_screen = RecordingScreen(exp.screen.size, trakstar.filename)
     wait_for_start_recording_event(remote_control, recording_screen)
     record_data(remote_control, recording_screen)

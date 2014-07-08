@@ -12,7 +12,6 @@ import atexit
 import numpy as np
 from udp_connection import UDPConnection
 
-
 def data_dict2string(data_dict, angles=False, quality=False, times=True,
                 cpu_times=False, udp=True):
     txt = ""
@@ -53,6 +52,7 @@ def copy_data_dict(old):
         new[s] = np.copy(old[s])
     return new
 
+
 class TrakSTARInterface(object):
     """ The trakSTAR interface"""
     def __init__(self):
@@ -90,7 +90,7 @@ class TrakSTARInterface(object):
         self._is_init = False
 
     def open_data_file(self, filename, directory="data", suffix=".csv",
-                       time_stamp_filename=True, write_angles=False,
+                       time_stamp_filename=False, write_angles=False,
                        write_quality=False, write_cpu_times=False,
                        write_udp=True, comment_line=""):
         """if data file is open, data will be recorded"""
@@ -104,12 +104,23 @@ class TrakSTARInterface(object):
 
         if filename is None or len(filename) == 0:
             filename = "pytrak_recording"
-        if time_stamp_filename:
-            filename = filename + "_" + strftime("%Y%m%d%H%M", localtime())
-        filename = filename + suffix
-        self.filename = filename
+        while True:
+            if time_stamp_filename:
+                self.filename = filename + "_" + strftime("%Y%m%d%H%M", localtime())\
+                            + suffix
+            else:
+                self.filename = filename + suffix
+
+            if os.path.isfile(directory + os.path.sep + self.filename):
+                #
+                print "data file already exists, using time_stamp"
+                time_stamp_filename = True
+            else:
+                break
+
+
         self.directory = directory
-        self._file = open(directory + os.path.sep + filename, 'w+')
+        self._file = open(directory + os.path.sep + self.filename, 'w+')
         if len(comment_line)>0:
             self._file.write("#" + comment_line + "\n")
         varnames = "time,sensor,x,y,z"
@@ -224,8 +235,24 @@ class TrakSTARInterface(object):
         #system configuration
         sysconf = api.SYSTEM_CONFIGURATION()
         psys_conf = ctypes.pointer(sysconf)
-        api.GetBIRDSystemConfiguration(psys_conf)
+
+        # report SystemConfiguration
+        error_code = api.GetBIRDSystemConfiguration(psys_conf)
+        if error_code != 0:
+            self._error_handler(error_code)
         self.system_configuration = sysconf
+
+        report_rate = 0
+        # TODO report rate is not read out yet
+        #report_rate = ctypes.c_ubyte()
+        #print report_rate
+        #error_code = api.GetSystemParameter(api.SystemParameterType.REPORT_RATE,
+        #                                    ctypes.pointer(report_rate), 2)
+        #if error_code != 0:
+        #    self._error_handler(error_code)
+        #print report_rate
+
+
 
         # read attached sensors config
         sensor_conf = api.SENSOR_CONFIGURATION()
@@ -241,13 +268,10 @@ class TrakSTARInterface(object):
         self.attached_sensors = attached_sensors
 
         if print_configuration:
-            print "  attached sensors", self.attached_sensors
-            print "  measurement rate:", sysconf.measurementRate, " Hz."
-            print "  maximum range:", sysconf.maximumRange, " inches."
-            print "  metric data reporting:", bool(sysconf.metric)
-            print "  power line frequency:", sysconf.powerLineFrequency, " Hz."
-            #print "  report rate:", sysconf.reportRate
-
+            print TrakSTARInterface.configuration_text(self.attached_sensors,
+                                 sysconf.measurementRate, sysconf.maximumRange,
+                                 bool(sysconf.metric), sysconf.powerLineFrequency,
+                                 report_rate)
 
     def set_system_configuration(self, measurement_rate=80, max_range=36,
                                  metric=True, power_line=60, report_rate=1,
@@ -293,6 +317,18 @@ class TrakSTARInterface(object):
             self._error_handler(error_code)
 
         self.read_configurations(print_configuration=print_configuration)
+
+    @staticmethod
+    def configuration_text(attached_sensors, measurementRate, maximumRange,
+                           metric, powerLineFrequency, reportRate):
+        """Creates text from configuration"""
+        txt = ""
+        txt = txt + "attached sensors: " + repr(attached_sensors)
+        txt = txt + "\nmaximum range: " + str(maximumRange) + " inches"
+        txt = txt + "\nmetric data reporting: " + str(bool(metric))
+        txt = txt + "\npower line frequency: " + str(powerLineFrequency) + " Hz"
+        txt = txt + "\nreport rate: " +str(reportRate)
+        return txt
 
 
 class TrakSTARRecordingThread(threading.Thread):
