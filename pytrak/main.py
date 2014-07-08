@@ -13,7 +13,7 @@ from trakstar import TrakSTARInterface, TrakSTARRecordingThread
 
 trakstar = None
 exp = None
-udp = None #TODO:udp_connection
+udp_connection = None
 
 def logo_text_line(text):
     blank = stimuli.Canvas(size=(600, 400))
@@ -96,21 +96,21 @@ def prepare_recoding(remote_control, filename=None):
         raise RuntimeError("Pytrak not initialized")
     # remote control
     if remote_control:
-        udp.poll_last_data()  # clear buffer
-        while not udp.is_connected:  # wait for connection
+        udp_connection.poll_last_data()  # clear buffer
+        while not udp_connection.is_connected:  # wait for connection
             logo_text_line(text="Waiting for connection...").present()
             exp.clock.wait(100)
-            udp.poll()
+            udp_connection.poll()
             exp.keyboard.check()
         #get settings from remote
-        s = udp.poll()
+        s = udp_connection.poll()
         while s is None or s.lower() != 'done':
             logo_text_line(text="Waiting for settings...").present()
             exp.clock.wait(50)
             if s is not None:
                 settings.get_udp_input(s)
-            s = udp.poll()
-        udp.send('confirm')
+            s = udp_connection.poll()
+        udp_connection.send('confirm')
     #manual control
     else:
         if filename is None:
@@ -156,12 +156,12 @@ def wait_for_start_recording_event(remote_control, recording_screen):
     if trakstar is None or exp is None:
         raise RuntimeError("Pytrak not initialized")
     if remote_control:
-        udp.poll_last_data()  #clear buffer
+        udp_connection.poll_last_data()  #clear buffer
         recording_screen.stimulus(infotext="Waiting to UDP start trigger...").present()
         while s is None or not s.lower().startswith('start'):
             exp.keyboard.check()
-            s = udp.poll()
-        udp.send('confirm')
+            s = udp_connection.poll()
+        udp_connection.send('confirm')
     else:
         recording_screen.stimulus(infotext="Press key to start recording").present()
         exp.keyboard.wait()
@@ -195,10 +195,10 @@ def process_udp_input(udp_input):
     """maps udp input to keys and returns the key command"""
     udp_command = udp_input.lower()
     if udp_command == 'quit':
-        udp.send('confirm')
+        udp_connection.send('confirm')
         return process_key_input("q")
     elif udp_command == 'toggle_pause':
-        udp.send('confirm')
+        udp_connection.send('confirm')
         return process_key_input("p")
     return None
 
@@ -277,7 +277,7 @@ def record_data(remote_control, recording_screen):
 
 
 def run(remote_control = None, filename=None):
-    global trakstar, exp, udp
+    global trakstar, exp, udp_connection
     print "Pytrak", __version__
     if remote_control is None:
         remote_control = initialize(ask_for_remote_control = True)

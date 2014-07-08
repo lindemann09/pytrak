@@ -15,14 +15,14 @@ from trakstar import UDPConnection
 control.set_develop_mode(True)
 exp = control.initialize()
 
-udp = UDPConnection()
-print udp
+udp_connection = UDPConnection()
+print udp_connection
 
-if not udp.connect_peer("169.254.1.1"):  # 41.89.98.24
+if not udp_connection.connect_peer("169.254.1.1"):  # 41.89.98.24
     print "error connecting to peer"
     exit()
 
-stimuli.TextLine("connected to " + udp.peer_ip).present()
+stimuli.TextLine("connected to " + udp_connection.peer_ip).present()
 
 c = Clock()
 
@@ -42,7 +42,7 @@ c = Clock()
 ##feedback = udp.poll()
 ##while feedback is None:
 ##    feedback = udp.poll()
-##print "<-- ", c.time,  feedback   
+##print "<-- ", c.time,  feedback
 ##c.wait(2000)
 ##
 ##print "--> ", c.time, "pause"
@@ -50,7 +50,7 @@ c = Clock()
 ##feedback = udp.poll()
 ##while feedback is None:
 ##    feedback = udp.poll()
-##print "<-- ", c.time,  feedback   
+##print "<-- ", c.time,  feedback
 ##c.wait(2000)
 ##
 ##print "--> ", c.time, "unpause"
@@ -59,7 +59,7 @@ c = Clock()
 ##feedback = udp.poll()
 ##while feedback is None:
 ##    feedback = udp.poll()
-##print "<-- ", c.time,  feedback   
+##print "<-- ", c.time,  feedback
 ##c.wait(2000)
 ##
 ##print "--> ", c.time, "quit"
@@ -67,7 +67,7 @@ c = Clock()
 ##feedback = udp.poll()
 ##while feedback is None:
 ##    feedback = udp.poll()
-##print "<-- ", c.time,  feedback   
+##print "<-- ", c.time,  feedback
 
 while True:
     key = exp.keyboard.check()
@@ -77,21 +77,21 @@ while True:
         text = io.TextInput().get()
         stimuli.BlankScreen().present()
         print "--> ", c.time, text
-        udp.send(text)
+        udp_connection.send(text)
     elif key == ord("t"):
         times = []
         for cnt in range(20):
             stimuli.TextLine("ping test " + str(cnt)).present()
             c.reset_stopwatch()
-            ok, time = udp.ping()
+            ok, time = udp_connection.ping()
             print c.stopwatch_time
             times.append(time)
             c.wait(100)
         stimuli.BlankScreen().present()
         print times
 
-    feedback = udp.poll()
+    feedback = udp_connection.poll()
     if feedback is not None:
         print "<-- ", c.time, feedback
 
-udp.unconnect_peer()
+udp_connection.unconnect_peer()
