@@ -11,6 +11,8 @@ from recording_screen import RecordingScreen
 from plotter import PlotterXYZ
 from trakstar import TrakSTARInterface, TrakSTARRecordingThread
 
+#TODO missing ip connection details
+
 trakstar = None
 exp = None
 udp_connection = None
@@ -45,7 +47,7 @@ def get_monitor_resolution():
 
 def initialize(ask_for_remote_control):
     """returns remote control if asked for"""
-    global trakstar, exp
+    global trakstar, udp_connection, exp
     trakstar = TrakSTARInterface()
     thr_init_trackstar = Thread(target = trakstar.initialize)
     thr_init_trackstar.start()
@@ -80,7 +82,7 @@ def initialize(ask_for_remote_control):
     thr_init_trackstar.join() # wait finishing trackstar thread
 
     if trakstar.is_init:
-        udp = trakstar.udp
+        udp_connection = trakstar.udp
         logo_text_line(text="Trakstar initialized").present()
     else:
         logo_text_line(text="Trakstar failed to initialize").present()
@@ -108,7 +110,7 @@ def prepare_recoding(remote_control, filename=None):
             logo_text_line(text="Waiting for settings...").present()
             exp.clock.wait(50)
             if s is not None:
-                settings.get_udp_input(s)
+                settings.process_udp_input(s)
             s = udp_connection.poll()
         udp_connection.send('confirm')
     #manual control
@@ -158,6 +160,7 @@ def wait_for_start_recording_event(remote_control, recording_screen):
     if remote_control:
         udp_connection.poll_last_data()  #clear buffer
         recording_screen.stimulus(infotext="Waiting to UDP start trigger...").present()
+        s = None
         while s is None or not s.lower().startswith('start'):
             exp.keyboard.check()
             s = udp_connection.poll()
@@ -196,10 +199,10 @@ def process_udp_input(udp_input):
     udp_command = udp_input.lower()
     if udp_command == 'quit':
         udp_connection.send('confirm')
-        return process_key_input("q")
+        return process_key_input(misc.constants.K_q)
     elif udp_command == 'toggle_pause':
         udp_connection.send('confirm')
-        return process_key_input("p")
+        return process_key_input(misc.constants.K_p)
     return None
 
 def record_data(remote_control, recording_screen):
@@ -288,7 +291,8 @@ def run(remote_control = None, filename=None):
         #raw_input("Press <Enter> to close....")
 
     prepare_recoding(remote_control=remote_control, filename=filename)
-    recording_screen = RecordingScreen(exp.screen.size, filename)
+
+    recording_screen = RecordingScreen(exp.screen.size, trakstar.filename)
     wait_for_start_recording_event(remote_control, recording_screen)
     record_data(remote_control, recording_screen)
     end()

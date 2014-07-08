@@ -47,9 +47,5 @@ pytrak will send "confirm" again once it has started.
 To quit recording, you have to send to pytrak the string "quit"
 UDPConnection().send("quit")
 
-
-to halt recording (e.g. between blocks), you have to send to pytrak the string "pause"
-UDPConnection().send("pause") (again you'll receive "confirm")
-and to unpause 
-UDPConnection().send("unpause") (response is "confirm" again)
-if you wish to have the "unpause" command in your data output, you'll have to send it TWICE!
+to toggle pause 
+UDPConnection().send("toggle_pause")

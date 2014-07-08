@@ -143,7 +143,7 @@ def get_input(exp, i):
         return
 
 
-def get_udp_input(exp, s):
+def process_udp_input(s):
     """
     Input received via udp to change TrakSTAR system settings.
     Every string begins with a description of the value to be changed,
