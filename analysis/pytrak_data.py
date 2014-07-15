@@ -60,8 +60,22 @@ def load_npz(filename):
     return fl['sensor_ids'], fl['data'], fl['timestamps'], fl['quality']
 
 
+def find_boarder_crossings(xyz, coordinates=[1,2]):
+    """find each row, where the sign of the two coordinates changes
+    :returns
+        numpy arrays with indies where a border crossing occurs
 
- 
+    """
+    sign_diff_sum = np.sum(np.abs(np.diff(np.sign(xyz[:, coordinates]), axis=0)), axis=1)
+    return np.where(sign_diff_sum >=4)[0] + 1
+
+def correct_boarder_crossings(data, coordinates=[1,2]):
+    for s, sensor_xyz in enumerate(data):
+        print find_boarder_crossings(sensor_xyz)
+        for idx in find_boarder_crossings(sensor_xyz, coordinates):
+            data[s, idx:, :] = data[s, idx:, :] * -1
+    return data
+
 if __name__ == "__main__":
     convert_data2npz("demo_data2.csv")
     sensor_ids, data, timestamps, quality = load_npz("demo_data2.npz") 
