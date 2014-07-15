@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-from PyQt4.QtCore import SIGNAL, Qt
+from PyQt4.QtCore import SIGNAL, Qt, QCoreApplication
 from PyQt4 import QtGui
 
 import numpy as np
@@ -27,14 +27,14 @@ class AppForm(QtGui.QMainWindow):
 
     def save_plot(self):
         file_choices = "PNG (*.png)|*.png"
-        
+
         path = unicode(QtGui.QFileDialog.getSaveFileName(self,
-                        'Save file', '', 
+                        'Save file', '',
                         file_choices))
         if path:
             self._gui_canvas.print_figure(path, dpi=self._gui_dpi)
             self.statusBar().showMessage('Saved to %s' % path, 2000)
-    
+
     def on_about(self):
         msg = """
 Pytrak Browser
@@ -42,19 +42,29 @@ Pytrak Browser
 (c) Oliver Lindemann
 """
         QtGui.QMessageBox.about(self, "About the demo", msg.strip())
-    
+
     def on_pick(self, event):
         # The event received here is of the type
         # matplotlib.backend_bases.PickEvent
         #
         # It carries lots of information, of which we're using
         # only a small amount here.
-        # 
+        #
         box_points = event.artist.get_bbox().get_points()
         msg = "You've clicked on a bar with coords:\n %s" % box_points
-        
+
         QtGui.QMessageBox.information(self, "Click!", msg)
-    
+
+
+    def convert_csv(self):
+        diag = QtGui.QFileDialog()
+        self.filename = unicode(diag.getOpenFileName(self,
+                        'Get CSV file', "",
+                        "*.csv"))
+        diag.close()
+        diag.update()
+        QCoreApplication.instance().processEvents()
+        pytrak_data.convert_data2npz(self.filename)
 
     def load_data(self):
         self.filename = unicode(QtGui.QFileDialog.getOpenFileName(self,
@@ -90,7 +100,7 @@ Pytrak Browser
         for i in range(3):
             self._gui_axes[i].clear()
             self._gui_axes[i].grid(self._gui_grid_cb.isChecked())
-        
+
 
             for s in range(self.n_sensors):
                 ax = self._gui_axes[i]
@@ -103,7 +113,7 @@ Pytrak Browser
                 #ax.axvline(tmp, color=self.sensor_colours[s])
 
         self._gui_canvas.draw()
-    
+
     def on_back(self):
         self.x_position -= (self.window_width - self.window_overlap)
         if self.x_position < 0:
@@ -128,16 +138,16 @@ Pytrak Browser
 
     def create_main_frame(self):
         self._gui_main_frame = QtGui.QWidget()
-        
-        # Create the mpl Figure and FigCanvas objects. 
+
+        # Create the mpl Figure and FigCanvas objects.
         # 5x4 inches, 100 dots-per-inch
         #
         self._gui_dpi = 100
         self._gui_fig = Figure((15.0, 6.0), dpi=self._gui_dpi)
         self._gui_canvas = FigureCanvas(self._gui_fig)
         self._gui_canvas.setParent(self._gui_main_frame)
-        
-        # Since we have only one plot, we can use add_axes 
+
+        # Since we have only one plot, we can use add_axes
         # instead of add_subplot, but then the subplot
         # configuration tool in the navigation toolbar wouldn't
         # work.
@@ -151,7 +161,7 @@ Pytrak Browser
         # Bind the 'pick' event for clicking on one of the bars
         #
         self._gui_canvas.mpl_connect('pick_event', self.on_pick)
-        
+
         # Create the navigation toolbar, tied to the canvas
         #
         self._gui_mpl_toolbar = NavigationToolbar(self._gui_canvas, self._gui_main_frame)
@@ -167,35 +177,35 @@ Pytrak Browser
         self._gui_grid_cb = QtGui.QCheckBox("Show &Grid")
         self._gui_grid_cb.setChecked(False)
         self.connect(self._gui_grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
-        
+
         self._gui_slider = QtGui.QSlider(Qt.Horizontal)
         self._gui_slider.setTracking(True)
         #self._gui_slider.setTickPosition(QtGui.QSlider.TicksBothSides)
         self.connect(self._gui_slider, SIGNAL('valueChanged(int)'), self.on_slider)
-        
+
         #
         # Layout with box sizers
-        # 
+        #
         hbox = QtGui.QHBoxLayout()
-        
+
         for w in [self._gui_back, self._gui_forward, self._gui_grid_cb,
                     self._gui_slider]:
             hbox.addWidget(w)
             hbox.setAlignment(w, Qt.AlignVCenter)
-        
+
         vbox = QtGui.QVBoxLayout()
         vbox.addWidget(self._gui_canvas)
         vbox.addWidget(self._gui_mpl_toolbar)
         vbox.addLayout(hbox)
-        
+
         self._gui_main_frame.setLayout(vbox)
         self.setCentralWidget(self._gui_main_frame)
 
     def create_status_bar(self):
         self._gui_status_text = QtGui.QLabel("This is a demo")
         self.statusBar().addWidget(self._gui_status_text, 1)
-        
-    def create_menu(self):        
+
+    def create_menu(self):
         self._gui_data_menu = self.menuBar().addMenu("&Data")
 
         quit_action = self.create_action("&Quit", slot=self.close,
@@ -203,11 +213,14 @@ Pytrak Browser
         load_data_action = self.create_action("&Load data",
             shortcut="Ctrl+O", slot=self.load_data,
             tip="Load Pytrak Data")
+        convert = self.create_action("&Convert csv to npz",
+            slot=self.convert_csv,
+            tip="Convert CSV data to npz file")
         correct_bc = self.create_action("&Correct boarder crossing",
             slot=self.correct_boarder_crossing,
             tip="Correct data for boarder crossing")
         self.add_actions(self._gui_data_menu,
-            (load_data_action, correct_bc, None, quit_action))
+            (load_data_action, correct_bc, None, convert, None, quit_action))
 
 
         self._gui_extras_menu = self.menuBar().addMenu("&Extras")
@@ -216,9 +229,9 @@ Pytrak Browser
             tip="Load data")
 
         about_action = self.create_action("&About",
-            shortcut='F1', slot=self.on_about, 
+            shortcut='F1', slot=self.on_about,
             tip='About the demo')
-        
+
         self.add_actions(self._gui_extras_menu, (save_plot, None, about_action,))
 
     def add_actions(self, target, actions):
@@ -228,8 +241,8 @@ Pytrak Browser
             else:
                 target.addAction(action)
 
-    def create_action(  self, text, slot=None, shortcut=None, 
-                        icon=None, tip=None, checkable=False, 
+    def create_action(  self, text, slot=None, shortcut=None,
+                        icon=None, tip=None, checkable=False,
                         signal="triggered()"):
         action = QtGui.QAction(text, self)
         if icon is not None:

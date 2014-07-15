@@ -3,7 +3,7 @@ import csv
 
 def convert_data2npz(filename):
     """converts csv data to npz
-    filename     
+    filename
     """
     varnames = None
     comment_char = "#"
@@ -45,16 +45,16 @@ def convert_data2npz(filename):
     quality = map(lambda x: np.array(quality[x]), sensor_ids)
     data = np.array(map(lambda x: np.array(data[x]), sensor_ids))
     print "data:", np.shape(data)
-    
+
     filename = filename.rsplit(".", 1)[ 0 ]
     with open(filename + ".npz", "w") as npzfile:
-        np.savez(npzfile, timestamps=timestamps, 
+        np.savez(npzfile, timestamps=timestamps,
                  data=data, sensor_ids = sensor_ids,
                  quality=quality)
-                 
+
 def load_npz(filename):
     """returns sensor_ids, data, timestamps, quality
-    requires filename incluing suffix    
+    requires filename incluing suffix
     """
     fl = np.load(filename)
     return fl['sensor_ids'], fl['data'], fl['timestamps'], fl['quality']
@@ -78,5 +78,5 @@ def correct_boarder_crossings(data, coordinates=[1,2]):
 
 if __name__ == "__main__":
     convert_data2npz("demo_data2.csv")
-    sensor_ids, data, timestamps, quality = load_npz("demo_data2.npz") 
+    sensor_ids, data, timestamps, quality = load_npz("demo_data2.npz")
 
