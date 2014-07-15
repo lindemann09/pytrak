@@ -1,7 +1,8 @@
+from multiprocessing import Pool
 import numpy as np
 import csv
 
-def convert_data2npz(filename):
+def convert_data2npz(filename, correct_boardercrossing=True):
     """converts csv data to npz
     filename
     """
@@ -9,7 +10,7 @@ def convert_data2npz(filename):
     comment_char = "#"
     sensor_ids = [1, 2, 3, 4]
 
-    #make empty dict
+    #make empty dicts
     data = {}
     timestamps = []
     quality = {}
@@ -46,6 +47,10 @@ def convert_data2npz(filename):
     data = np.array(map(lambda x: np.array(data[x]), sensor_ids))
     print "data:", np.shape(data)
 
+    if correct_boardercrossing:
+        print "correcting boarder crossing"
+        data = correct_boarder_crossings(data, coordinates=[0,1,2])
+
     filename = filename.rsplit(".", 1)[ 0 ]
     with open(filename + ".npz", "w") as npzfile:
         np.savez(npzfile, timestamps=timestamps,
@@ -66,15 +71,30 @@ def find_boarder_crossings(xyz, coordinates=[1,2]):
         numpy arrays with indies where a border crossing occurs
 
     """
-    sign_diff_sum = np.sum(np.abs(np.diff(np.sign(xyz[:, coordinates]), axis=0)), axis=1)
+    sign_diff_sum = np.sum(np.abs(np.diff(np.sign(xyz[:, coordinates]), axis=0)),
+                           axis=1)
     return np.where(sign_diff_sum >=4)[0] + 1
 
 def correct_boarder_crossings(data, coordinates=[1,2]):
     for s, sensor_xyz in enumerate(data):
-        print find_boarder_crossings(sensor_xyz)
         for idx in find_boarder_crossings(sensor_xyz, coordinates):
             data[s, idx:, :] = data[s, idx:, :] * -1
     return data
+
+def dist(x):
+    return
+
+def velocity(data, timestamps):
+    """calculates velocity of data for all sensors"""
+    tdiff = np.diff(timestamps)
+    velocity = []
+    for cnt, sensor in enumerate(data):
+        print "calc velocity sensor {0}".format(cnt)
+        v = map(lambda x: np.sqrt(np.sum((x[0]-x[1])**2)),
+                zip(sensor[0:-1, :], sensor[1:,:]))
+        v = np.array(v) / tdiff
+        velocity.append(np.concatenate(([0], v)))
+    return np.transpose(np.array(velocity))
 
 if __name__ == "__main__":
     convert_data2npz("demo_data2.csv")

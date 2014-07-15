@@ -4,6 +4,7 @@ Created on Wed Jul  9 13:47:59 2014
 
 @author: oliver
 """
+from timeit import timeit
 import numpy as np
 from matplotlib import pyplot
 import pytrak_data
@@ -40,11 +41,9 @@ def plot_sensor_data(data, axes):
 sensor_ids, data, timestamps, quality = pytrak_data.load_npz("demo_data.npz")
 print np.shape(data)
 
-d = data[2,4800:5600,:]
-coordinates=[1,2]
-xsum = np.sum(np.abs(np.diff(np.sign(d[:, :]), axis=0)), axis=1)
-xsum = np.append([0], xsum)
-dd = np.concatenate((d, np.transpose([xsum])),1)
+velo = pytrak_data.velocity(data, timestamps)
+print np.shape(velo)
+dd = data[0]
 np.savetxt("test.txt", dd, fmt="%8.2f")
 
 
