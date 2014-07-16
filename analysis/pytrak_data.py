@@ -148,10 +148,11 @@ def moving_average_filter(data, window_size=5):
     Note
     -----
     see http://stackoverflow.com/questions/13728392/moving-average-or-running-mean
-
+    or http://stackoverflow.com/questions/11352047/finding-moving-average-from-data-points-in-python
     """
+
     N = window_size
-    ma_filter = lambda x :np.convolve(x, np.ones((N,))/N)[(N-1):]
+    ma_filter = lambda x :np.convolve(x, np.ones((N,))/float(N))[(N-1):]
 
     dim = np.shape(data)
     for s in range(dim[0]):
