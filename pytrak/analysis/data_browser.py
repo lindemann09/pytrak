@@ -10,7 +10,8 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg as NavigationToolbar
 from matplotlib.figure import Figure
 
-import pytrak_data
+import data_handling
+import movement_analysis
 
 class AppForm(QtGui.QMainWindow):
     def __init__(self, parent=None):
@@ -63,7 +64,7 @@ Pytrak Browser
         self.filename = unicode(diag.getOpenFileName(self,
                         'Get CSV file', "",
                         "*.csv"))
-        pytrak_data.convert_data2npz(self.filename)
+        data_handling.convert_data2npz(self.filename)
 
     def on_load_data(self):
         self.block_drawing = True
@@ -73,7 +74,7 @@ Pytrak Browser
 
         self.setWindowTitle("PyTrak browser: " + self.filename)
         self.sensor_ids, self.data, self.timestamps, self.quality = \
-            pytrak_data.load_npz(self.filename)
+            data_handling.load_npz(self.filename)
         self.x_position = 0
         self.n_sensors = np.shape(self.data)[0]
         self.n_samples = np.shape(self.data)[1]
@@ -161,10 +162,10 @@ Pytrak Browser
     def on_filtering(self):
         if self._gui_filtering_cb.isChecked():
             self.unfiltered_data = np.copy(self.data)
-            #self.data = pytrak_data.butter_lowpass_filter(self.data,
+            #self.data = movement_analysis.butter_lowpass_filter(self.data,
             #                                          lowcut=10, order=3,
             #                                          sample_rate=240)
-            self.data = pytrak_data.moving_average_filter(self.data,
+            self.data = movement_analysis.moving_average_filter(self.data,
                                             window_size=5)
         else:
             self.data = self.unfiltered_data
@@ -178,7 +179,7 @@ Pytrak Browser
     def on_velocity(self):
         if self._gui_velocity_cb.isChecked():
             if self.velocity is None:
-                self.velocity = pytrak_data.velocity(self.data, self.timestamps)
+                self.velocity = movement_analysis.velocity(self.data, self.timestamps)
         self.on_draw()
 
     def on_back(self):
@@ -345,11 +346,11 @@ Pytrak Browser
         return action
 
 
-def main():
+def run_data_browser():
     app = QtGui.QApplication(sys.argv)
     form = AppForm()
     form.show()
     app.exec_()
 
 if __name__ == "__main__":
-    main()
+    run_data_browser()
