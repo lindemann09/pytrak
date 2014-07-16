@@ -41,8 +41,7 @@ def plot_sensor_data(data, axes):
 sensor_ids, data, timestamps, quality = pytrak_data.load_npz("demo_data.npz")
 print np.shape(data)
 
-velo = pytrak_data.velocity(data, timestamps)
-print np.shape(velo)
+v1 =  pytrak_data.velocity(data, timestamps)
 dd = data[0]
 np.savetxt("test.txt", dd, fmt="%8.2f")
 

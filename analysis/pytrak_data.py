@@ -81,20 +81,14 @@ def correct_boarder_crossings(data, coordinates=[1,2]):
             data[s, idx:, :] = data[s, idx:, :] * -1
     return data
 
-def dist(x):
-    return
-
 def velocity(data, timestamps):
     """calculates velocity of data for all sensors"""
+    dist = np.sqrt(np.sum((data[:, 0:-1, :]-data[:, 1:,:])**2, axis=2))
     tdiff = np.diff(timestamps)
-    velocity = []
-    for cnt, sensor in enumerate(data):
-        print "calc velocity sensor {0}".format(cnt)
-        v = map(lambda x: np.sqrt(np.sum((x[0]-x[1])**2)),
-                zip(sensor[0:-1, :], sensor[1:,:]))
-        v = np.array(v) / tdiff
-        velocity.append(np.concatenate(([0], v)))
+    velocity = map(lambda x: np.concatenate(([0], x/tdiff)),
+                    dist)
     return np.transpose(np.array(velocity))
+
 
 if __name__ == "__main__":
     convert_data2npz("demo_data2.csv")
