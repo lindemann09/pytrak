@@ -25,6 +25,7 @@ class AppForm(QtGui.QMainWindow):
         self.data = None
         self.block_drawing = False
         self.velocity = None
+        self.xrange_width = 10000
         self.on_draw()
 
     def save_plot(self):
@@ -57,7 +58,6 @@ Pytrak Browser
 
         QtGui.QMessageBox.information(self, "Click!", msg)
 
-
     def on_convert_csv(self):
         diag = QtGui.QFileDialog()
         self.filename = unicode(diag.getOpenFileName(self,
@@ -76,13 +76,28 @@ Pytrak Browser
         self.sensor_ids, self.data, self.timestamps, self.quality = \
             pytrak_data.load_npz(self.filename)
         self.x_position = 0
-        self.reset_values()
+        self.n_sensors = np.shape(self.data)[0]
+        self.n_samples = np.shape(self.data)[1]
+        self.velocity = None
+        self.set_ylims()
+        self.set_xrange()
+        self._gui_slider.setRange(1, self.n_samples - self.xrange_width)
+
 
         for i in self.sensor_ids:
             self._gui_sensor_cb[i-1].setChecked(True)
 
         self.block_drawing = False
         self.on_draw()
+
+    def set_xrange(self):
+        try:
+            self.xrange_width = int(float(self._gui_txt_xrange.text()))
+        except:
+            self._gui_txt_xrange.setText(str(self.xrange_width))
+        self.xrange_overlap = int(self.xrange_width * 0.05) + 1
+        self.on_draw()
+
 
     def set_ylims(self):
         try:
@@ -95,27 +110,23 @@ Pytrak Browser
         self._gui_txt_ylims.setText("{0}, {1}".format(self.y_lim[0], self.y_lim[1]))
         self.on_draw()
 
-    def reset_values(self):
-        self.window_width = 10000
-        self.window_overlap = 500
-        self.n_sensors = np.shape(self.data)[0]
-        self.n_samples = np.shape(self.data)[1]
-        self.velocity = None
-        self.set_ylims()
-        self._gui_slider.setRange(1, self.n_samples - self.window_width)
-
 
     def on_draw(self):
-        """ Redraws the figure
-        """
-        # clear the axes and redraw the plot anew
-        #
+        """ Redraws the figure"""
+
         if self.data is None or self.block_drawing:
             return
         self._gui_back.setDisabled(self.x_position == 0)
-        self._gui_forward.setDisabled(self.x_position+self.window_width >= self.n_samples)
+        self._gui_forward.setDisabled(self.x_position+self.xrange_width >= self.n_samples)
         self._gui_slider.setValue(self.x_position)
-        xrange = range(self.x_position, self.x_position + self.window_width)
+
+        xrange = range(self.x_position, self.x_position + self.xrange_width)
+        if self._gui_timestamps_cb.isChecked():
+            xvalues = self.timestamps[xrange]/1000.0
+        else:
+            xvalues = xrange
+
+        # plot data
         for i in range(3):  # 3 parameter (xyz)
             ax = self._gui_axes[i]
             ax.clear()
@@ -123,19 +134,19 @@ Pytrak Browser
             if i<2:
                 ax.set_xticklabels([])
             if i==2 and self._gui_velocity_cb.isChecked():
-                ylim_velocity = [np.min(self.velocity), np.max(self.velocity)]
+                # plot velocity
+                ylim_velocity = [-1, np.max(self.velocity)]
                 for s in range(self.n_sensors):
                     if self._gui_sensor_cb[s].isChecked():
-                        ax.plot(self.timestamps[xrange],
-                                self.velocity[xrange,s],
+                        ax.plot(xvalues,self.velocity[xrange,s],
                                 color = self.sensor_colours[s])
                         ax.set_ylim(ylim_velocity)
 
             else:
+                # plot xyz
                 for s in range(self.n_sensors):
                     if self._gui_sensor_cb[s].isChecked():
-                        ax.plot(self.timestamps[xrange],
-                                self.data[s, xrange,i],
+                        ax.plot(xvalues, self.data[s, xrange,i],
                                 color = self.sensor_colours[s])
                         ax.set_ylim(self.y_lim)
             # marker
@@ -153,16 +164,16 @@ Pytrak Browser
         self.on_draw()
 
     def on_back(self):
-        self.x_position -= (self.window_width - self.window_overlap)
+        self.x_position -= (self.xrange_width - self.xrange_overlap)
         if self.x_position < 0:
             self.x_position = 0
 
         self.on_draw()
 
     def on_forward(self):
-        self.x_position += (self.window_width - self.window_overlap)
-        if self.x_position + self.window_width  > self.n_samples:
-            self.x_position = self.n_samples - (self.window_width)
+        self.x_position += (self.xrange_width - self.xrange_overlap)
+        if self.x_position + self.xrange_width  > self.n_samples:
+            self.x_position = self.n_samples - (self.xrange_width)
         self.on_draw()
 
     def on_slider(self):
@@ -171,19 +182,11 @@ Pytrak Browser
 
     def create_main_frame(self):
         self._gui_main_frame = QtGui.QWidget()
-
-        # Create the mpl Figure and FigCanvas objects.
-        # 5x4 inches, 100 dots-per-inch
         #
         self._gui_dpi = 100
         self._gui_fig = Figure((15.0, 6.0), dpi=self._gui_dpi)
         self._gui_canvas = FigureCanvas(self._gui_fig)
         self._gui_canvas.setParent(self._gui_main_frame)
-
-        # Since we have only one plot, we can use add_axes
-        # instead of add_subplot, but then the subplot
-        # configuration tool in the navigation toolbar wouldn't
-        # work.
         #
         self._gui_axes = []
         self._gui_axes.append(self._gui_fig.add_subplot(311))
@@ -192,15 +195,11 @@ Pytrak Browser
         matplotlib.rcParams.update({'font.size': 8})
 
         # Bind the 'pick' event for clicking on one of the bars
-        #
         self._gui_canvas.mpl_connect('pick_event', self.on_pick)
-
         # Create the navigation toolbar, tied to the canvas
-        #
         #self._gui_mpl_toolbar = NavigationToolbar(self._gui_canvas, self._gui_main_frame)
 
-        # check boxes
-        #
+        # check boxes elements
         self._gui_sensor_cb =[]
         for i in range(4):
             self._gui_sensor_cb.append(QtGui.QCheckBox("Sensor {0}".format(i+1)))
@@ -209,39 +208,48 @@ Pytrak Browser
                          self.on_draw)
 
         self._gui_txt_ylims = QtGui.QLineEdit()
-        self._gui_txt_ylims.setMaximumWidth(100)
+        self._gui_txt_ylims.setMaximumWidth(80)
         self.connect(self._gui_txt_ylims, SIGNAL('editingFinished ()'),
                     self.set_ylims)
+
         self._gui_grid_cb = QtGui.QCheckBox("Show &Grid")
-        self._gui_grid_cb.setChecked(False)
+        self._gui_grid_cb.setChecked(True)
         self.connect(self._gui_grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
 
-        self._gui_velocity_cb = QtGui.QCheckBox("Velocity plot")
+        self._gui_velocity_cb = QtGui.QCheckBox("Velocity")
         self._gui_velocity_cb.setChecked(False)
         self.connect(self._gui_velocity_cb, SIGNAL('stateChanged(int)'), self.on_velocity)
 
+        self._gui_timestamps_cb = QtGui.QCheckBox("Timestamps")
+        self._gui_timestamps_cb.setChecked(True)
+        self.connect(self._gui_timestamps_cb, SIGNAL('stateChanged(int)'),
+                     self.on_draw)
+
         hbox1 = QtGui.QHBoxLayout()
         for w in self._gui_sensor_cb + [self._gui_velocity_cb, self._gui_grid_cb,
-                            QtGui.QLabel('y_lim:'), self._gui_txt_ylims, ]:
+                        self._gui_timestamps_cb, QtGui.QLabel('YLim:'), self._gui_txt_ylims]:
             hbox1.addWidget(w)
             hbox1.setAlignment(w, Qt.AlignVCenter)
 
-
-        # back, forward, slider
-        #
+        # xrange, slider, back, forward
         self._gui_back = QtGui.QPushButton("&<<")
         self.connect(self._gui_back, SIGNAL('clicked()'), self.on_back)
         self._gui_forward= QtGui.QPushButton("&>>")
         self.connect(self._gui_forward, SIGNAL('clicked()'), self.on_forward)
-
 
         self._gui_slider = QtGui.QSlider(Qt.Horizontal)
         self._gui_slider.setTracking(True)
         #self._gui_slider.setTickPosition(QtGui.QSlider.TicksBothSides)
         self.connect(self._gui_slider, SIGNAL('valueChanged(int)'), self.on_slider)
 
+        self._gui_txt_xrange = QtGui.QLineEdit()
+        self._gui_txt_xrange.setMaximumWidth(50)
+        self.connect(self._gui_txt_xrange, SIGNAL('editingFinished ()'),
+                    self.set_xrange)
+
         hbox2 = QtGui.QHBoxLayout()
-        for w in [self._gui_back, self._gui_forward, self._gui_slider]:
+        for w in [QtGui.QLabel('Range:'), self._gui_txt_xrange,
+                  self._gui_slider, self._gui_back, self._gui_forward]:
             hbox2.addWidget(w)
             hbox2.setAlignment(w, Qt.AlignVCenter)
 
@@ -257,7 +265,7 @@ Pytrak Browser
         self.setCentralWidget(self._gui_main_frame)
 
     def create_status_bar(self):
-        self._gui_status_text = QtGui.QLabel("This is a demo")
+        self._gui_status_text = QtGui.QLabel("")
         self.statusBar().addWidget(self._gui_status_text, 1)
 
     def create_menu(self):
@@ -316,7 +324,6 @@ def main():
     form = AppForm()
     form.show()
     app.exec_()
-
 
 if __name__ == "__main__":
     main()
