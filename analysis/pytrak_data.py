@@ -156,7 +156,7 @@ def moving_average_filter(data, window_size=5):
     dim = np.shape(data)
     for s in range(dim[0]):
         for x in range(dim[2]):
+            last_values = np.copy(data[s,-N:,x])
             data[s,:,x] = ma_filter(data[s,:,x])
-            data[s,-N:,x] = data[s,-N-1,x] # last N values should not be zero
-                                             #  but -N-1
+            data[s,-N:,x] = last_values   # last N values should not be zero
     return np.array(data)
