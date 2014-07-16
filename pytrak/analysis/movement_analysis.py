@@ -55,13 +55,16 @@ def moving_average_filter(data, window_size=5):
     or http://stackoverflow.com/questions/11352047/finding-moving-average-from-data-points-in-python
     """
 
-    N = window_size
-    ma_filter = lambda x :np.convolve(x, np.ones((N,))/float(N))[(N-1):]
+    window= np.ones(int(window_size))/float(window_size)
+    ma_filter = lambda x : np.convolve(x, window, 'same')
 
     dim = np.shape(data)
     for s in range(dim[0]):
         for x in range(dim[2]):
-            last_values = np.copy(data[s,-N:,x])
+            first_values = np.copy(data[s,:window_size:,x])
+            last_values = np.copy(data[s,-window_size:,x])
             data[s,:,x] = ma_filter(data[s,:,x])
-            data[s,-N:,x] = last_values   # last N values should not be zero
+            data[s,:window_size:,x] = first_values
+            data[s,-window_size:,x] = last_values
+
     return np.array(data)
