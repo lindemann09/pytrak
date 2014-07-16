@@ -1,4 +1,8 @@
-from multiprocessing import Pool
+"""helpful functions to handle pytrak data"""
+
+__author__ = "Oliver Lindemann"
+
+from scipy import signal
 import numpy as np
 import csv
 
@@ -43,6 +47,7 @@ def load_csv(filename, comment_char = "#"):
     quality = np.array(map(lambda x: np.array(quality[x]), sensor_ids))
     data = np.array(map(lambda x: np.array(data[x]), sensor_ids))
     print "data:", np.shape(data)
+    print "estimated sample rate", sample_rate(data)
     return sensor_ids, data, timestamps, quality
 
 def convert_data2npz(filename, correct_hemisphere_crossing=True,
@@ -112,3 +117,46 @@ def velocity(data, timestamps):
     velocity = map(lambda x: np.concatenate(([0], x/tdiff)),
                     dist)
     return np.transpose(np.array(velocity))
+
+def estimate_sample_rate(timestamps):
+    """estimates to sampling rate in hz for the timestamps"""
+    return 1000.0/np.mean(np.diff(timestamps))
+
+## data filtering
+def butter_lowpass(lowcut, sample_rate, order=3):
+    """design lowpass filter
+     Sample rate and desired cutoff frequencies (in Hz).
+     """
+    nyq = 0.5 * sample_rate
+    low = lowcut / nyq
+    b, a = signal.butter(N=order, Wn=low, btype='lowpass')
+    return b, a
+
+def butter_lowpass_filter(data, lowcut=10, order=3,
+                           sample_rate=None):
+    """filter data of all sensors"""
+    print "filtering data"
+    if sample_rate is None:
+        sample_rate = estimate_sample_rate(data)
+    b, a = butter_lowpass(lowcut, sample_rate, order=order)
+    filtered = map(lambda x: signal.lfilter(b, a, x), data)
+    return np.array(filtered)
+
+def moving_average_filter(data, window_size=5):
+    """moving average filter / running mean
+
+    Note
+    -----
+    see http://stackoverflow.com/questions/13728392/moving-average-or-running-mean
+
+    """
+    N = window_size
+    ma_filter = lambda x :np.convolve(x, np.ones((N,))/N)[(N-1):]
+
+    dim = np.shape(data)
+    for s in range(dim[0]):
+        for x in range(dim[2]):
+            data[s,:,x] = ma_filter(data[s,:,x])
+            data[s,-N:,x] = data[s,-N-1,x] # last N values should not be zero
+                                             #  but -N-1
+    return np.array(data)

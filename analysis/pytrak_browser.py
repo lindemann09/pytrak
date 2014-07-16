@@ -72,17 +72,18 @@ Pytrak Browser
                         "pytrak npz (*.npz)"))
 
         self.setWindowTitle("PyTrak browser: " + self.filename)
-        self._gui_velocity_cb.setChecked(False)
         self.sensor_ids, self.data, self.timestamps, self.quality = \
             pytrak_data.load_npz(self.filename)
         self.x_position = 0
         self.n_sensors = np.shape(self.data)[0]
         self.n_samples = np.shape(self.data)[1]
         self.velocity = None
+
+        self._gui_filtering_cb.setChecked(False)
+        self._gui_velocity_cb.setChecked(False)
         self.set_ylims()
         self.set_xrange()
         self._gui_slider.setRange(1, self.n_samples - self.xrange_width)
-
 
         for i in self.sensor_ids:
             self._gui_sensor_cb[i-1].setChecked(True)
@@ -157,6 +158,23 @@ Pytrak Browser
 
         self._gui_canvas.draw()
 
+    def on_filtering(self):
+        if self._gui_filtering_cb.isChecked():
+            self.unfiltered_data = np.copy(self.data)
+            #self.data = pytrak_data.butter_lowpass_filter(self.data,
+            #                                          lowcut=10, order=3,
+            #                                          sample_rate=240)
+            self.data = pytrak_data.moving_average_filter(self.data,
+                                            window_size=5)
+        else:
+            self.data = self.unfiltered_data
+        self._gui_txt_ylims.setText("") # reset ylims
+        self.set_ylims()
+        self.velocity = None
+        self.on_velocity()
+
+
+
     def on_velocity(self):
         if self._gui_velocity_cb.isChecked():
             if self.velocity is None:
@@ -207,18 +225,19 @@ Pytrak Browser
             self.connect(self._gui_sensor_cb[-1], SIGNAL('stateChanged(int)'),
                          self.on_draw)
 
-        self._gui_txt_ylims = QtGui.QLineEdit()
-        self._gui_txt_ylims.setMaximumWidth(80)
-        self.connect(self._gui_txt_ylims, SIGNAL('editingFinished ()'),
-                    self.set_ylims)
-
         self._gui_grid_cb = QtGui.QCheckBox("Show &Grid")
         self._gui_grid_cb.setChecked(True)
         self.connect(self._gui_grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
 
         self._gui_velocity_cb = QtGui.QCheckBox("Velocity")
         self._gui_velocity_cb.setChecked(False)
-        self.connect(self._gui_velocity_cb, SIGNAL('stateChanged(int)'), self.on_velocity)
+        self.connect(self._gui_velocity_cb, SIGNAL('stateChanged(int)'),
+                     self.on_velocity)
+
+        self._gui_filtering_cb = QtGui.QCheckBox("Filtering")
+        self._gui_filtering_cb.setChecked(False)
+        self.connect(self._gui_filtering_cb, SIGNAL('stateChanged(int)'),
+                     self.on_filtering)
 
         self._gui_timestamps_cb = QtGui.QCheckBox("Timestamps")
         self._gui_timestamps_cb.setChecked(True)
@@ -227,9 +246,10 @@ Pytrak Browser
 
         hbox1 = QtGui.QHBoxLayout()
         for w in self._gui_sensor_cb + [self._gui_velocity_cb, self._gui_grid_cb,
-                        self._gui_timestamps_cb, QtGui.QLabel('YLim:'), self._gui_txt_ylims]:
+                        self._gui_timestamps_cb, self._gui_filtering_cb]:
             hbox1.addWidget(w)
             hbox1.setAlignment(w, Qt.AlignVCenter)
+
 
         # xrange, slider, back, forward
         self._gui_back = QtGui.QPushButton("&<<")
@@ -242,6 +262,11 @@ Pytrak Browser
         #self._gui_slider.setTickPosition(QtGui.QSlider.TicksBothSides)
         self.connect(self._gui_slider, SIGNAL('valueChanged(int)'), self.on_slider)
 
+        self._gui_txt_ylims = QtGui.QLineEdit()
+        self._gui_txt_ylims.setMaximumWidth(80)
+        self.connect(self._gui_txt_ylims, SIGNAL('editingFinished ()'),
+                    self.set_ylims)
+
         self._gui_txt_xrange = QtGui.QLineEdit()
         self._gui_txt_xrange.setMaximumWidth(50)
         self.connect(self._gui_txt_xrange, SIGNAL('editingFinished ()'),
@@ -249,6 +274,7 @@ Pytrak Browser
 
         hbox2 = QtGui.QHBoxLayout()
         for w in [QtGui.QLabel('Range:'), self._gui_txt_xrange,
+                QtGui.QLabel('YLim:'), self._gui_txt_ylims,
                   self._gui_slider, self._gui_back, self._gui_forward]:
             hbox2.addWidget(w)
             hbox2.setAlignment(w, Qt.AlignVCenter)

@@ -31,18 +31,13 @@ def plot_sensors(axes, data, x, y):
     for s in range(n_sensors):
         axes.plot(data[s,:,x], data[s,:,y], colours[s])
 
-def plot_sensor_data(data, axes):
-    n_sensors = np.shape(data)[0]
-    for s in range(n_sensors):
-        axes.plot(data[s,:,x], data[s,:,y], colours[s])
 
 
 #pytrak_data.convert_data2npz("demo_data.csv")
 sensor_ids, data, timestamps, quality = pytrak_data.load_npz("demo_data.npz")
 print np.shape(data)
-v1 =  pytrak_data.velocity(data, timestamps)
-dd = data[0]
-np.savetxt("test.txt", timestamps, fmt="%8.2f")
+print timeit(lambda : pytrak_data.moving_average_filter(data), number = 1 )
+#np.savetxt("test.txt", timestamps, fmt="%8.2f")
 
 #fig = pyplot.Figure((15.0, 4.0))
 #axes = fig.add_subplot(121)
