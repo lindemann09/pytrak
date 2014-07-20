@@ -37,10 +37,10 @@ var/
 .pydevproject
 
 # Sphinx documentation
-*.npz
 docs/_build/
 
 events/
 data/
+*.npz
 trakSTAR_Installation_and_Operation_Guide_ RevD.pdf
 *.cfg
