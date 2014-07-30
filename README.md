@@ -12,8 +12,8 @@ Dependencies
 ------------
 * Python 2.7 & NumPy 1.7 or higher
 * Expyriment 0.7.0 or higher
-* trakSTAR Windows API (ATC3DG.DLL or ATC3DG64.DLL). The dynamic link library is needed in the Windows 
-  system folder or in the trakstar subfolder. (see trakSTAR driver CD or ftp.ascension-tech.com)
+* trakSTAR Windows API (`ATC3DG.DLL` or `ATC3DG64.DLL`). The dynamic link library is needed in the Windows 
+  system folder or in the `trakstar` subfolder. (see trakSTAR driver CD or ftp.ascension-tech.com)
 
 Links
 -----
