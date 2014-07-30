@@ -1,5 +1,5 @@
 """TrakSTARInterface"""
-import threading
+import threading # FIXME: suppost to be multiprocessing
 from pytrak.trakstar import atc3dg_functions as api
 
 __author__ = 'Raphael Wallroth <rwallroth@uni-potsdam.de>, \
