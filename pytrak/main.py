@@ -1,5 +1,4 @@
 import os
-from time import sleep
 from threading import Thread
 from expyriment import control, stimuli, design, io, misc
 
@@ -8,7 +7,7 @@ import settings
 from settings import Command
 from sensor_history import SensorHistory
 from recording_screen import RecordingScreen
-from plotter import PlotterXYZ
+from plotter_xyz import PlotterXYZ
 from trakstar import TrakSTARInterface, TrakSTARRecordingThread
 
 #TODO missing ip connection details
