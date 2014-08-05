@@ -349,7 +349,7 @@ class TrakSTARRecordingThread(threading.Thread):
         self.trakstar = trakstar_interface
         if not isinstance(self.trakstar, TrakSTARInterface) or \
                 not self.trakstar.is_init:
-            raise RuntimeError("Not a initialized trakstar interface object")
+            raise RuntimeError("Not an initialized trakstar interface object")
         self._recording_flag.clear()
 
     def stop(self):
