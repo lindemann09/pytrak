@@ -8,7 +8,6 @@ Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>'
 import os
 import ctypes
 from time import localtime, strftime, time
-import atexit
 import numpy as np
 from udp_connection import UDPConnection
 
@@ -72,7 +71,6 @@ class TrakSTARInterface(object):
 
         self.udp = UDPConnection()
         print self.udp
-        atexit.register(self.close)
 
     def __del__(self):
         self.close(ignore_error=True)

@@ -1,3 +1,5 @@
+__version__ = "0.1"
+
 import threading
 import numpy as np
 import pygame

@@ -5,10 +5,12 @@ from expyriment import control, stimuli, design, io, misc
 from __init__ import __version__
 import settings
 from settings import Command
-from sensor_history import SensorHistory
 from recording_screen import RecordingScreen
 from plotter_xyz import PlotterXYZ
 from trakstar import TrakSTARInterface, TrakSTARRecordingThread
+
+
+
 
 #TODO missing ip connection details
 

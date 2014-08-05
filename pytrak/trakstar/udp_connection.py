@@ -2,6 +2,7 @@
 """
 
 __author__ = "Oliver Lindemann <oliver@expyriment.org>"
+__version__ = "0.1"
 
 import os
 from time import sleep, time
@@ -43,6 +44,7 @@ def get_lan_ip():
 
 
 class UDPConnection(object):
+    # todo: document the usage "connecting" "unconecting"
     COMMAND_CHAR = "$"
     CONNECT = COMMAND_CHAR + "connect"
     UNCONNECT = COMMAND_CHAR + "unconnect"
