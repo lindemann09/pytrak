@@ -2,8 +2,6 @@
 Definitions of constants and structures required
 (adapted from ATC3DG.h)
 
-untested BETA version
-
 Author: O. Lindemann
 """
 
