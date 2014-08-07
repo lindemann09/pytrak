@@ -27,7 +27,7 @@ class RecordingScreen(object):
                                 [self.right, self.top])
 
     @staticmethod
-    def text_line(text, position, text_size=15, text_colour=(255, 150, 50)):
+    def _text_line(text, position, text_size=15, text_colour=(255, 150, 50)):
         """helper function"""
         return stimuli.TextLine(text, position=position,
                                 text_size=text_size,
@@ -35,14 +35,14 @@ class RecordingScreen(object):
 
     def add_text_line_centered(self, text, position, text_size=15,
                                text_colour=(255, 150, 50)):
-        self.elements.append(RecordingScreen.text_line(text, position,
+        self.elements.append(RecordingScreen._text_line(text, position,
                                                        text_size,
                                                        text_colour))
 
     def add_text_line_right(self, text, position, text_size=15,
                             text_colour=(255, 150, 50)):
         """text_line right aligned"""
-        txt = RecordingScreen.text_line(text, position, text_size,
+        txt = RecordingScreen._text_line(text, position, text_size,
                                         text_colour)
         txt.move((-1 * (txt.surface_size[0] / 2), 0))
         self.elements.append(txt)
@@ -50,7 +50,7 @@ class RecordingScreen(object):
     def add_text_line_left(self, text, position, text_size=15,
                            text_colour=(255, 150, 50)):
         """text line left aligned"""
-        txt = RecordingScreen.text_line(text, position, text_size,
+        txt = RecordingScreen._text_line(text, position, text_size,
                                         text_colour)
         txt.move((txt.surface_size[0] / 2, 0))
         self.elements.append(txt)
@@ -61,6 +61,6 @@ class RecordingScreen(object):
         for elem in self.elements:
             elem.plot(canvas)
         if len(infotext) > 0:
-            RecordingScreen.text_line(text=infotext, position=[0, 0],
+            RecordingScreen._text_line(text=infotext, position=[0, 0],
                                       text_size=36).plot(canvas)
         return canvas
