@@ -215,7 +215,7 @@ def record_data(remote_control, recording_screen):
     if trakstar is None or exp is None:
         raise RuntimeError("Pytrak not initialized")
 
-    refresh_interval = 0.02
+    refresh_interval = 50
     refresh_timer = misc.Clock()
     #history = {} # make history
     #for sensor in trakstar.attached_sensors:
@@ -255,9 +255,9 @@ def record_data(remote_control, recording_screen):
 
         # refresh screen once in a while
         if refresh_timer.stopwatch_time >=refresh_interval:
+            refresh_timer.reset_stopwatch()
             if trakstar_thread.is_recording:
                 plotter.update()
-                refresh_timer.stopwatch_time
             else:
                 recording_screen.stimulus("Paused recording").present()
 
