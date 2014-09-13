@@ -1,6 +1,6 @@
 """Sensor History with moving average filtering and distance, velocity"""
 
-import math
+import numpy as np
 
 class SensorHistory():
     """The Sensory History keeps track of the last n recorded sample and
@@ -8,8 +8,9 @@ class SensorHistory():
     """
 
     def __init__(self, history_size, number_of_parameter):
-        self.history = [[0] * number_of_parameter] * history_size
-        self._moving_average = [0] * number_of_parameter
+        self.history = np.zeros((history_size, number_of_parameter),
+                                dtype=np.float32)
+        self._moving_average = np.zeros(number_of_parameter, dtype=np.float32)
         self._correction_cnt = 0
         self._previous_moving_average = self._moving_average
 
@@ -28,17 +29,17 @@ class SensorHistory():
         """
 
         self._previous_moving_average = self._moving_average
-        pop = self.history.pop(0)
-        self.history.append(values)
+        pop = self.history[0,:]
+        sample = np.array(values)
+        self.history = np.vstack([self.history, sample])[1:,:] # append and remove first
         # pop first element and calc moving average
         if self._correction_cnt > 10000:
             self._correction_cnt = 0
             self._moving_average = self.calc_history_average()
         else:
             self._correction_cnt += 1
-            self._moving_average = map(
-                lambda x: x[0] + (float(x[1] - x[2]) / len(self.history)),
-                zip(self._moving_average, values, pop))
+            self._moving_average = self._moving_average + \
+                            ( (sample - pop) / len(self.history) )
 
 
     def calc_history_average(self):
@@ -50,13 +51,10 @@ class SensorHistory():
 
         """
 
-        s = [float(0)] * self.number_of_parameter
-        for t in self.history:
-            s = map(lambda x: x[0] + x[1], zip(s, t))
-        return map(lambda x: x / len(self.history), s)
+        return np.mean(self.history, axis=0)
 
     def distance_to_point(self, point):
-        """returns current euclidian distance to a point in space, based on
+        """returns current Euclidean distance to a point in space, based on
         filtered data (moving average)
 
         Note
@@ -64,8 +62,7 @@ class SensorHistory():
         point has to match in the number of dimensions
         """
 
-        return math.sqrt(sum(map(lambda x: (x[1] - x[0]) ** 2,
-                                 zip(self._moving_average, point))))
+        return np.sqrt(np.sum( (self._moving_average - np.array(point)) ** 2))
 
     @property
     def history_size(self):
@@ -86,8 +83,7 @@ class SensorHistory():
     @property
     def replacement(self):
         """returns the current replacement based on filtered data"""
-        return map(lambda x: x[0] - x[1], zip(self._moving_average,
-                                              self._previous_moving_average))
+        return self._moving_average - self._previous_moving_average
 
     def velocity(self, sampling_rate):
         """returns the current velocity based on filtered data"""
@@ -96,7 +92,7 @@ class SensorHistory():
 
 if __name__ == "__main__":
     import random
-
+    print "go"
     sh = SensorHistory(history_size=5, number_of_parameter=3)
     for x in range(19908):
         x = [random.randint(0, 100), random.randint(0, 100), random.randint(0, 100)]
