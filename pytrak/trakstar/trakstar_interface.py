@@ -1,5 +1,6 @@
 """TrakSTARInterface"""
 import threading
+import ConfigParser
 from pytrak.trakstar import atc3dg_functions as api
 
 __author__ = 'Raphael Wallroth <rwallroth@uni-potsdam.de>, \
@@ -52,8 +53,50 @@ def copy_data_dict(old):
     return new
 
 
+class TrakSTARSettings(obejct):
+    cfg_filename = "pytrak.cfg"
+    cfg_section = 'TrakStar'
+    
+    def __init__(self, measurement_rate = 80,
+        max_range = 36, report_rate = 1, power_line = 60,
+        metric = True):
+
+        self.measurement_rate = 80
+        self.max_range = 36
+        self.report_rate = 1
+        self.power_line = 60
+        self.metric = True
+
+    def read(self):
+        config = ConfigParser.ConfigParser()
+        try:
+            config.read(self.cfg_filename)
+            self.measurement_rate = config.getint(TrakSTARSettings.cfg_section, 'measurement_rate')
+            self.max_range = config.getint(TrakSTARSettings.cfg_section, 'max_range')
+            self.report_rate = config.getint(TrakSTARSettings.cfg_section, 'report_rate')
+            self.power_line = config.getint(TrakSTARSettings.cfg_section, 'power_line')
+            self.metric = config.getboolean(TrakSTARSettings.cfg_section, 'metric')
+        except:
+            print "Creating settings file: ", cfg_filename
+            self.save()
+            return False
+        return True
+
+    def save():
+        config = ConfigParser.RawConfigParser()
+        config.add_section(self.cfg_section)
+        config.set(self.cfg_section, "measurement_rate", self.measurement_rate)
+        config.set(self.cfg_section, "max_range", self.max_range)
+        config.set(self.cfg_section, "report_rate", self.report_rate)
+        config.set(self.cfg_section, "power_line", self.power_line)
+        config.set(self.cfg_section, "metric", self.metric)
+        with open(self.cfg_filename, 'wb') as configfile:
+            config.write(configfile)
+
+
 class TrakSTARInterface(object):
     """ The trakSTAR interface"""
+
     def __init__(self):
         self._record = api.DOUBLE_POSITION_ANGLES_TIME_Q_RECORD_AllSensors_Four()
         self._precord = ctypes.pointer(self._record)
@@ -329,50 +372,34 @@ class TrakSTARInterface(object):
         return txt
 
 
-class TrakSTARRecordingThread(threading.Thread):
-    def __init__(self, trakstar_interface):
+class TrakSTARRecordingProcess(Process):
+    def __init__(self):
         """
-        :param trakstar_interface_instrance
-                    a initialize trakstar object that is ready for recording
-        :return:
         """
-        super(TrakSTARRecordingThread, self).__init__()
-        self._last_data = [] # array of the last data
+        super(TrakSTARRecordingProcess, self).__init__()
 
-        self._stop_request = threading.Event()
-        self._lock = threading.Lock()
-        self._new_data_flag = threading.Event()
-        self._recording_flag = threading.Event()
-
-        self.trakstar = trakstar_interface
-        if not isinstance(self.trakstar, TrakSTARInterface) or \
-                not self.trakstar.is_init:
-            raise RuntimeError("Not an initialized trakstar interface object")
-        self._recording_flag.clear()
+        self._stop_request = Event()
+        self._recording_flag = Event()
+        self.queue = Queue()
+        self.event_trakstar_is_initialized = Event()
 
     def stop(self):
-        self.join(timeout=1000)
-
-    def join(self, timeout=None):
         self._stop_request.set()
-        self.pause_recording()
-        super(TrakSTARRecordingThread, self).join(timeout)
 
-    def start(self):
-        if not isinstance(self.trakstar, TrakSTARInterface) or \
-                not self.trakstar.is_init:
-            raise RuntimeError("TrakSTAR not initialized")
-        else:
-            self.trakstar.reset_timer()
-            self.pause_recording()
-            super(TrakSTARRecordingThread, self).start()
+    #def start(self):
+    #    if not isinstance(self.trakstar, TrakSTARInterface) or \
+    #            not self.trakstar.is_init:
+    #        raise RuntimeError("TrakSTAR not initialized")
+    #    else:
+    #        self.trakstar.reset_timer()
+    #        self.pause_recording()
+    #        super(TrakSTARRecordingThread, self).start()
 
     @property
     def is_recording(self):
         return self._recording_flag.is_set()
 
     def start_recording(self):
-        self._last_data = []
         self._recording_flag.set()
 
     def pause_recording(self):
@@ -405,12 +432,15 @@ class TrakSTARRecordingThread(threading.Thread):
         return rtn
 
     def run(self):
-        while not self._stop_request.is_set():
-            if self._recording_flag.is_set():
-                data = self.trakstar.get_synchronous_data_dict()
-                self._lock.acquire()
-                self._last_data.append(data)
-                self._new_data_flag.set()
-                self._lock.release()
-            else:
-                self._recording_flag.wait(timeout=0.2)
+        trakstar = TrakSTARInterface()
+        self.event_trakstar_is_initialized.clear()
+        trakstar.initialize()
+        if trakstar.is_initialized:
+            self.event_trakstar_is_initialized.set()
+
+            while not self._stop_request.is_set():
+                if self._recording_flag.is_set():
+                    data = trakstar.get_synchronous_data_dict()
+                    self.queue.put_not_wait(data)
+                else:
+                    self._recording_flag.wait(timeout=0.2)

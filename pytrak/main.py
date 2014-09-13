@@ -10,6 +10,8 @@ from plotter_xyz import PlotterXYZ
 from trakstar import TrakSTARInterface, TrakSTARRecordingThread
 
 
+atexit.register(settings.save)
+settings.read()
 
 
 #TODO missing ip connection details

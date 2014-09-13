@@ -3,21 +3,12 @@
     reads and save settings automatically
 """
 
-import atexit
-import ConfigParser
+from trakstar_interface import TrakSTARSettings()
+
 from expyriment import stimuli, misc, io
 
 #####
-#  overwritten by existing config file
-measurement_rate = 80
-max_range = 36
-report_rate = 1
-power_line = 60
-metric = True
-#####
-
-cfg_filename = "pytrak.cfg"
-cfg_section = 'TrakStar'
+trakstar_settings = TrakSTARSettings()
 
 plotter_width = 1000
 plotter_background_colour = (10, 10, 10)
@@ -44,35 +35,6 @@ colours = {1: misc.constants.C_RED,
 
 t_wait = 1500
 
-def save():
-    config = ConfigParser.RawConfigParser()
-    config.add_section(cfg_section)
-    config.set(cfg_section, "measurement_rate", measurement_rate)
-    config.set(cfg_section, "max_range", max_range)
-    config.set(cfg_section, "report_rate", report_rate)
-    config.set(cfg_section, "power_line", power_line)
-    config.set(cfg_section, "metric", metric)
-    with open(cfg_filename, 'wb') as configfile:
-        config.write(configfile)
-
-
-def read():
-    global measurement_rate, max_range
-    global report_rate, power_line, metric, circle_diameter
-
-    config = ConfigParser.ConfigParser()
-    try:
-        config.read(cfg_filename)
-        measurement_rate = config.getint(cfg_section, 'measurement_rate')
-        max_range = config.getint(cfg_section, 'max_range')
-        report_rate = config.getint(cfg_section, 'report_rate')
-        power_line = config.getint(cfg_section, 'power_line')
-        metric = config.getboolean(cfg_section, 'metric')
-    except:
-        print "Creating settings file: ", cfg_filename
-        save()
-        return False
-    return True
 
 def reording_settings_info_screen():
 
@@ -95,56 +57,56 @@ def invalid_value(exp):
     exp.clock.wait(t_wait)
 
 def get_input(exp, i):
-    global measurement_rate, max_range, report_rate, power_line, metric
+    global trakstar_settings
     if i == 1:
-        measurement_rate = int(io.TextInput("Measurement rate (20 Hz < rate < 255 Hz):", length=3,
+        trakstar_settings.measurement_rate = int(io.TextInput("Measurement rate (20 Hz < rate < 255 Hz):", length=3,
                                             ascii_filter=range(ord("0"), ord("9") + 1)).get())
-        if measurement_rate < 20 or measurement_rate > 255:
-            measurement_rate = 80
+        if trakstar_settings.measurement_rate < 20 or trakstar_settings.measurement_rate > 255:
+            trakstar_settings.measurement_rate = 80
             invalid_value()
         else:
-            stimuli.TextLine(text="Measurement rate set to {0} Hz.".format(measurement_rate)).present()
+            stimuli.TextLine(text="Measurement rate set to {0} Hz.".format(trakstar_settings.measurement_rate)).present()
             exp.clock.wait(t_wait)
         return
     elif i == 2:
-        max_range = int(io.TextInput("Maximum range of transmitter (36, 72, 144 inches):", length=3,
+        trakstar_settings.max_range = int(io.TextInput("Maximum range of transmitter (36, 72, 144 inches):", length=3,
                                      ascii_filter=range(ord("1"), ord("5")) + [ord("6"), ord("7")]).get())
-        if max_range not in [36, 72, 144]:
-            max_range = 36
+        if trakstar_settings.max_range not in [36, 72, 144]:
+            trakstar_settings.max_range = 36
             invalid_value()
         else:
-            stimuli.TextLine(text="Maximum range of transmitter set to {0} inches.".format(max_range)).present()
+            stimuli.TextLine(text="Maximum range of transmitter set to {0} inches.".format(trakstar_settings.max_range)).present()
             exp.clock.wait(t_wait)
         return
     elif i == 3:
-        report_rate = int(io.TextInput("Report rate of the data (1 <= rate <= 127):", length=3,
+        trakstar_settings.report_rate = int(io.TextInput("Report rate of the data (1 <= rate <= 127):", length=3,
                                        ascii_filter=range(ord("0"), ord("9") + 1)).get())
-        if report_rate < 1 or report_rate > 127:
-            report_rate = 1
+        if trakstar_settings.report_rate < 1 or trakstar_settings.report_rate > 127:
+            trakstar_settings.report_rate = 1
             invalid_value()
         else:
-            stimuli.TextLine(text="Report rate of incoming data set to {0}.".format(report_rate)).present()
+            stimuli.TextLine(text="Report rate of incoming data set to {0}.".format(trakstar_settings.report_rate)).present()
             exp.clock.wait(t_wait)
         return
     elif i == 4:
-        power_line = int(io.TextInput("Power line frequency of the AC power source (50 or 60 Hz):",
+        trakstar_settings.power_line = int(io.TextInput("Power line frequency of the AC power source (50 or 60 Hz):",
                                       length=2, ascii_filter=[ord("0"), ord("5"), ord("6")]).get())
-        if power_line not in [50, 60]:
-            power_line = 60
+        if trakstar_settings.power_line not in [50, 60]:
+            trakstar_settings.power_line = 60
             invalid_value()
         else:
             stimuli.TextLine(
-                text="Power line frequency of the AC power source set to {0} Hz.".format(power_line)).present()
+                text="Power line frequency of the AC power source set to {0} Hz.".format(trakstar_settings.power_line)).present()
             exp.clock.wait(t_wait)
         return
     elif i == 5:
-        metric = int(io.TextInput("Switch metric data reporting on/off (1/0):",
+        trakstar_settings.metric = int(io.TextInput("Switch metric data reporting on/off (1/0):",
                                   length=1, ascii_filter=[ord("0"), ord("1")]).get())
-        if metric not in [0, 1]:
-            metric = True
+        if trakstar_settings.metric not in [0, 1]:
+            trakstar_settings.metric = True
             invalid_value()
         else:
-            stimuli.TextLine(text="Metric data reporting set to {0}.".format(metric)).present()
+            stimuli.TextLine(text="Metric data reporting set to {0}.".format(trakstar_settings.metric)).present()
             exp.clock.wait(t_wait)
         return
 
@@ -157,43 +119,39 @@ def process_udp_input(s):
 
     e.g.: "measurement: 50", "metric: 0"
     """
-    global filename, measurement_rate, max_range, report_rate, power_line, metric
-    if s.lower().startswith("filename"):
-        _, filename = s.split(":")
-        filename = filename.strip()
-        return
-    elif s.lower().startswith("measurement"):
+    global trakstar_settings
+    if s.lower().startswith("measurement"):
         _, measurement_rate = s.split(":")
         measurement_rate = int(measurement_rate.strip())
         if measurement_rate < 20 or measurement_rate > 255:
             measurement_rate = 80
+        trakstar_settings.measurement_rate = measurement_rate
         return
     elif s.lower().startswith("maximum"):
         _, max_range = s.split(":")
         max_range = int(max_range.strip())
         if max_range not in [36, 72, 144]:
             max_range = 36
+        trakstar_settings.max_range = max_range
         return
     elif s.lower().startswith("report"):
         _, report_rate = s.split(":")
         report_rate = int(report_rate.strip())
         if report_rate < 1 or report_rate > 127:
             report_rate = 1
+        trakstar_settings.report_rate = report_rate
         return
     elif s.lower().startswith("power"):
         _, power_line = s.split(":")
         power_line = int(power_line.strip())
         if power_line not in [50, 60]:
             power_line = 60
+        trakstar_settings.power_line = power_line
         return
     elif s.lower().startswith("metric"):
         _, metric = s.split(":")
         metric = int(metric.strip())
         if metric not in [0, 1]:
             metric = True
+        trakstar_settings.metric = metric
         return
-
-###
-atexit.register(save)
-read()
-###
