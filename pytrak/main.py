@@ -1,5 +1,7 @@
+# FIXME remote control not yet working
+
 import os
-from threading import Thread
+import atexit
 from expyriment import control, stimuli, design, io, misc
 
 from __init__ import __version__
@@ -7,18 +9,15 @@ import settings
 from settings import Command
 from recording_screen import RecordingScreen
 from plotter_xyz import PlotterXYZ
-from trakstar import TrakSTARInterface, TrakSTARRecordingThread
-
-
-atexit.register(settings.save)
-settings.read()
+from trakstar import TrakSTARRecordingProcess, TrakSTARSettings, TrakSTARDataFileSettings
+import change_trakstar_settings as ts_change
 
 
 #TODO missing ip connection details
 
+#globals
 trakstar = None
 exp = None
-udp_connection = None
 
 def logo_text_line(text):
     blank = stimuli.Canvas(size=(600, 400))
@@ -55,10 +54,9 @@ def initialize(remote_control=None, filename=None):
 
      """
 
-    global trakstar, udp_connection, exp
-    trakstar = TrakSTARInterface()
-    thr_init_trackstar = Thread(target = trakstar.initialize)
-    thr_init_trackstar.start()
+    global trakstar, exp
+    trakstar = TrakSTARRecordingProcess()
+    trakstar.start()
 
     screen_size = get_monitor_resolution()
 
@@ -91,67 +89,67 @@ def initialize(remote_control=None, filename=None):
         filename = filename.replace(" ", "_")
 
     logo_text_line(text="Trakstar is initializing...").present()
-    thr_init_trackstar.join() # wait finishing trackstar thread
 
-    if trakstar.is_init:
-        udp_connection = trakstar.udp
+    while trakstar.is_alive() and not trakstar.flag_is_initialized.is_set():
+        pass # wait finishing trackstar thread
+
+    if trakstar.flag_is_initialized.is_set():
         logo_text_line(text="Trakstar initialized").present()
     else:
         logo_text_line(text="Trakstar failed to initialize").present()
         exp.keyboard.wait()
     return remote_control, filename
 
-def prepare_recoding(remote_control, filename):
+def prepare_recoding(remote_control, filename, trakstar_seetings):
     """get filename, allow changing of settings
     and make connection in remote control mode
     """
+
+    global trakstar, exp
+
     # todo: display configuration
-    if trakstar is None or exp is None:
+    if trakstar is None or not trakstar.flag_is_initialized.is_set():
         raise RuntimeError("Pytrak not initialized")
-    # remote control
+
+    ## remote control
     if remote_control:
-        udp_connection.poll_last_data()  # clear buffer
-        while not udp_connection.is_connected:  # wait for connection
-            logo_text_line(text="Waiting for connection...").present()
-            exp.clock.wait(100)
-            udp_connection.poll()
-            exp.keyboard.check()
-        #get settings from remote
-        s = udp_connection.poll()
-        while s is None or s.lower() != 'done':
-            logo_text_line(text="Waiting for settings...").present()
-            exp.clock.wait(50)
-            if s is not None:
-                settings.process_udp_input(s)
-            s = udp_connection.poll()
-        udp_connection.send('confirm')
+        pass # FIXME include to trakstar process
+    #    udp_connection.poll_last_data()  # clear buffer
+    #    while not udp_connection.is_connected:  # wait for connection
+    #        logo_text_line(text="Waiting for connection...").present()
+    #        exp.clock.wait(100)
+    #        udp_connection.poll()
+    #       exp.keyboard.check()
+    #     #get settings from remote
+    #    s = udp_connection.poll()
+    #    while s is None or s.lower() != 'done':
+    #        logo_text_line(text="Waiting for settings...").present()
+    #        exp.clock.wait(50)
+    #        if s is not None:
+    #            ts_change.remote(s)
+    #        s = udp_connection.poll()
+    #    udp_connection.send('confirm')
     #manual control
     else:
         logo_text_line(text="Change TrakSTAR settings? (y/N)").present()
         key = exp.keyboard.wait([ord("z"), ord("y"), ord("n"),
                         misc.constants.K_SPACE, misc.constants.K_RETURN ])[0]
         if key == ord("y") or key == ord("z"):
-            menu = settings.get_menu(exp)
+            menu = ts_change.menu(exp)
             menu.present()
             key = exp.keyboard.wait(range(ord("1"), ord("5") + 1) + [ord("q")])[0]
             while key != ord("q"):
-                settings.get_input(exp, int(chr(int(key))))
+                trakstar_seetings = ts_change.manual(exp, int(chr(int(key))),
+                                                    trakstar_seetings)
                 menu.present()
                 key = exp.keyboard.wait(range(ord("1"), ord("5") + 1) +
                             [ord("q")])[0]
 
     #set system settings
-    trakstar.set_system_configuration(
-                            measurement_rate = settings.measurement_rate,
-                            max_range = settings.max_range,
-                            power_line = settings.power_line,
-                            metric = settings.metric,
-                            report_rate = settings.report_rate,
-                            print_configuration = True)
-
+    trakstar.command_queue.put(trakstar_seetings, timeout=1)
     comment_str = "Motion tracking data recorded with " + \
                    "Pytrak " + str(__version__)
-    trakstar.open_data_file(filename = filename,
+    file_settings = TrakSTARDataFileSettings(filename = filename,
                             directory = settings.data_dir,
                             suffix = settings.data_suffix,
                             time_stamp_filename = settings.data_time_stamps,
@@ -160,30 +158,32 @@ def prepare_recoding(remote_control, filename):
                             write_udp = remote_control,
                             write_cpu_times = settings.data_write_cpu_time,
                             comment_line = comment_str)
+    trakstar.command_queue.put(file_settings, timeout=1)
 
 
 def wait_for_start_recording_event(remote_control, recording_screen):
-    if trakstar is None or exp is None:
+    global trakstar, exp
+
+    if trakstar is None or not trakstar.flag_is_initialized.is_set():
         raise RuntimeError("Pytrak not initialized")
     if remote_control:
-        udp_connection.poll_last_data()  #clear buffer
-        recording_screen.stimulus(infotext="Waiting to UDP start trigger...").present()
-        s = None
-        while s is None or not s.lower().startswith('start'):
-            exp.keyboard.check()
-            s = udp_connection.poll()
-        udp_connection.send('confirm')
+        pass
+   #     udp_connection.poll_last_data()  #clear buffer
+   #     recording_screen.stimulus(infotext="Waiting to UDP start trigger...").present()
+   #     s = None
+   #     while s is None or not s.lower().startswith('start'):
+   #         exp.keyboard.check()
+   #         s = udp_connection.poll()
+   #     udp_connection.send('confirm')
     else:
         recording_screen.stimulus(infotext="Press key to start recording").present()
         exp.keyboard.wait()
 
 
 def end():
-    if trakstar is not None:
-        #logo_text_line(text="Closing trakSTAR").present()
-        trakstar.close_data_file()
-        trakstar.close()
     control.end("Quitting Pytrak",goodbye_delay=0, fast_quit=True)
+    exit()
+
 
 def process_key_input(key=None):
     """processes input from key and udp port
@@ -202,19 +202,22 @@ def process_key_input(key=None):
         return Command.set_marker
     return None
 
-def process_udp_input(udp_input):
-    """maps udp input to keys and returns the key command"""
-    udp_command = udp_input.lower()
-    if udp_command == 'quit':
-        udp_connection.send('confirm')
-        return process_key_input(misc.constants.K_q)
-    elif udp_command == 'toggle_pause':
-        udp_connection.send('confirm')
-        return process_key_input(misc.constants.K_p)
-    return None
+# FIXME
+# def process_udp_input(udp_input):
+#    """maps udp input to keys and returns the key command"""
+#    udp_command = udp_input.lower()
+#    if udp_command == 'quit':
+#        udp_connection.send('confirm')
+#        return process_key_input(misc.constants.K_q)
+#    elif udp_command == 'toggle_pause':
+#        udp_connection.send('confirm')
+#        return process_key_input(misc.constants.K_p)
+#    return None
 
 def record_data(remote_control, recording_screen):
-    if trakstar is None or exp is None:
+    global trakstar, exp
+
+    if trakstar is None or not trakstar.flag_is_initialized.is_set():
         raise RuntimeError("Pytrak not initialized")
 
     refresh_interval = 50
@@ -225,17 +228,16 @@ def record_data(remote_control, recording_screen):
 
     recording_screen.stimulus().present()
 
-    #start trakstar thread
-    trakstar_thread = TrakSTARRecordingThread(trakstar)
-    trakstar_thread.start()
+
+
     # start plotter threads
-    plotter = PlotterXYZ(attached_sensors=trakstar.attached_sensors,
+    plotter = PlotterXYZ(attached_sensors=trakstar.attached_sensors, ### FIXME get atched sensors
                          expyriment_screen_size=exp.screen.size,
                          refresh_time = 0.02)
     plotter.start()
 
     exp.keyboard.clear()
-    trakstar_thread.start_recording()
+    trakstar.request_do_polling.set()
     quit_recording = False
     set_marker = False
     while not quit_recording:
@@ -244,21 +246,28 @@ def record_data(remote_control, recording_screen):
         command_array = [process_key_input(key)]
 
         # get data and process
-        data_array = trakstar_thread.get_data_array()
+        data_array = []
+        while True:
+            try:
+                data_array.append(trakstar.data_queue.get_nowait())
+            except:
+                break
+
         for data in data_array:
             if len(data['udp']) > 0:
                 set_marker = True
             plotter.add_values(data, set_marker=set_marker)
             set_marker = False
             if remote_control:
-                command_array.append(process_udp_input(data['udp']))
+                pass
+                #FIXME command_array.append(process_udp_input(data['udp']))
             #for sensor in trakstar.attached_sensors:
             #    history[sensor].update(data[sensor][:3])
 
         # refresh screen once in a while
         if refresh_timer.stopwatch_time >=refresh_interval:
             refresh_timer.reset_stopwatch()
-            if trakstar_thread.is_recording:
+            if trakstar.request_do_polling.is_set():
                 plotter.update()
             else:
                 recording_screen.stimulus("Paused recording").present()
@@ -269,11 +278,11 @@ def record_data(remote_control, recording_screen):
                 quit_recording = True
                 break
             elif command == Command.toggle_pause:
-                if trakstar_thread.is_recording:
-                    trakstar_thread.pause_recording()
+                if trakstar.request_do_polling.is_set():
+                    trakstar.request_do_polling.clear()
                 else:
                     recording_screen.stimulus().present()
-                    trakstar_thread.start_recording()
+                    trakstar.request_do_polling.set()
             elif command == Command.increase_scaling:
                 plotter.scaling += 0.01
             elif command == Command.decrease_scaling:
@@ -284,18 +293,22 @@ def record_data(remote_control, recording_screen):
                 set_marker = True
 
     plotter.stop()
-    trakstar_thread.stop()
+    trakstar.request_stop.set()
 
 
 def run(remote_control = None, filename=None):
-    global trakstar, exp, udp_connection
+    global trakstar, exp
     print "Pytrak", __version__
-    remote_control, filename = initialize(remote_control, filename)
-    if not trakstar.is_init:
-        end()
-        #raw_input("Press <Enter> to close....")
 
-    prepare_recoding(remote_control=remote_control, filename=filename)
+    trakstar_seetings = TrakSTARSettings()
+    atexit.register(trakstar_seetings.save)
+    trakstar_seetings.read()
+
+    remote_control, filename = initialize(remote_control, filename)
+    if not trakstar.flag_is_initialized.is_set():
+        end()
+
+    prepare_recoding(remote_control=remote_control, filename=filename, trakstar_seetings=trakstar_seetings)
     recording_screen = RecordingScreen(exp.screen.size, trakstar.filename)
     wait_for_start_recording_event(remote_control, recording_screen)
     record_data(remote_control, recording_screen)

@@ -1,5 +1,6 @@
 """TrakSTARInterface"""
-import threading
+import atexit
+from multiprocessing import Process, Event, Queue
 import ConfigParser
 from pytrak.trakstar import atc3dg_functions as api
 
@@ -53,19 +54,47 @@ def copy_data_dict(old):
     return new
 
 
-class TrakSTARSettings(obejct):
+class TrakSTARDataFileSettings(object):
+
+    def __init__(self, filename, directory="data", suffix=".csv",
+                       time_stamp_filename=False, write_angles=False,
+                       write_quality=False, write_cpu_times=False,
+                       write_udp=True, comment_line=""):
+        self.filename = filename
+        self.directory = directory
+        self.suffix = suffix
+        self.time_stamp_filename = time_stamp_filename
+        self.write_angles = write_angles
+        self.write_quality = write_quality
+        self.write_cpu_times = write_cpu_times
+        self.write_udp = write_udp
+        self.comment_line = comment_line
+
+
+class TrakSTARSettings(object):
     cfg_filename = "pytrak.cfg"
     cfg_section = 'TrakStar'
     
-    def __init__(self, measurement_rate = 80,
-        max_range = 36, report_rate = 1, power_line = 60,
-        metric = True):
+    def __init__(self, measurement_rate = 80,max_range = 36, report_rate = 1,
+                 power_line = 60, metric = True):
 
-        self.measurement_rate = 80
-        self.max_range = 36
-        self.report_rate = 1
-        self.power_line = 60
-        self.metric = True
+        """
+
+        Parameter
+        ---------
+            measurement_rate in Hz: 20.0 < rate < 255.0
+            max_range: valid values (in inches): 36.0, 72.0, 144.0
+            metric: True (data in mm) or False (data in inches)
+            power_line in Hz: 50.0 or 60.0 (frequency of the AC power source)
+            report_rate: (int), between 1 and 127 --> report every 2nd, 3rd, etc. value
+
+        """
+
+        self.measurement_rate = measurement_rate
+        self.max_range = max_range
+        self.report_rate = report_rate
+        self.power_line = power_line
+        self.metric = metric
 
     def read(self):
         config = ConfigParser.ConfigParser()
@@ -77,12 +106,12 @@ class TrakSTARSettings(obejct):
             self.power_line = config.getint(TrakSTARSettings.cfg_section, 'power_line')
             self.metric = config.getboolean(TrakSTARSettings.cfg_section, 'metric')
         except:
-            print "Creating settings file: ", cfg_filename
+            print "Creating settings file: ", TrakSTARSettings.cfg_filename
             self.save()
             return False
         return True
 
-    def save():
+    def save(self):
         config = ConfigParser.RawConfigParser()
         config.add_section(self.cfg_section)
         config.set(self.cfg_section, "measurement_rate", self.measurement_rate)
@@ -119,10 +148,10 @@ class TrakSTARInterface(object):
         self.close(ignore_error=True)
 
     def close(self, ignore_error=True):
+        self.close_data_file()
         if not self.is_init:
             return
         print "* closing trakstar"
-        self.close_data_file()
         self.attached_sensors = None
         self.system_configuration = None
         error_code = api.CloseBIRDSystem()
@@ -130,29 +159,33 @@ class TrakSTARInterface(object):
             self.error_handler(error_code)
         self._is_init = False
 
-    def open_data_file(self, filename, directory="data", suffix=".csv",
-                       time_stamp_filename=False, write_angles=False,
-                       write_quality=False, write_cpu_times=False,
-                       write_udp=True, comment_line=""):
-        """if data file is open, data will be recorded"""
-        self._write_angles = write_angles
-        self._write_quality = write_quality
-        self._write_cpu_times = write_cpu_times
-        self._write_udp = write_udp
-        if not os.path.isdir(directory):
-            os.mkdir(directory)
+    def open_data_file(self, file_settings):
+        """if data file is open, data will be recorded
+
+        Parameters
+        -----------
+        file_settings: trakstar_data_file_settings
+
+        """
+        self._write_angles = file_settings.write_angles
+        self._write_quality = file_settings.write_quality
+        self._write_cpu_times = file_settings.write_cpu_times
+        self._write_udp = file_settings.write_udp
+        if not os.path.isdir(file_settings.directory):
+            os.mkdir(file_settings.directory)
         self.close_data_file()
 
-        if filename is None or len(filename) == 0:
+        if file_settings.filename is None or\
+                        len(file_settings.filename) == 0:
             filename = "pytrak_recording"
         while True:
             if time_stamp_filename:
                 self.filename = filename + "_" + strftime("%Y%m%d%H%M", localtime())\
-                            + suffix
+                            + file_settings.suffix
             else:
-                self.filename = filename + suffix
+                self.filename = filename + file_settings.suffix
 
-            if os.path.isfile(directory + os.path.sep + self.filename):
+            if os.path.isfile(file_settings.directory + os.path.sep + self.filename):
                 #
                 print "data file already exists, using time_stamp"
                 time_stamp_filename = True
@@ -160,18 +193,18 @@ class TrakSTARInterface(object):
                 break
 
 
-        self.directory = directory
-        self._file = open(directory + os.path.sep + self.filename, 'w+')
-        if len(comment_line)>0:
-            self._file.write("#" + comment_line + "\n")
+        self.directory = file_settings.directory
+        self._file = open(file_settings.directory + os.path.sep + self.filename, 'w+')
+        if len(file_settings.comment_line)>0:
+            self._file.write("#" + file_settings.comment_line + "\n")
         varnames = "time,sensor,x,y,z"
-        if write_angles:
+        if self._write_angles:
             varnames += ",a,e,r"
-        if write_quality:
+        if self._write_quality:
             varnames += ",quality"
-        if write_udp:
+        if self._write_udp:
             varnames += ",udp"
-        if write_cpu_times:
+        if self._write_cpu_times:
             varnames += ",cpu_time"
 
         self._file.write(varnames + "\n")
@@ -314,24 +347,18 @@ class TrakSTARInterface(object):
                                  bool(sysconf.metric), sysconf.powerLineFrequency,
                                  report_rate)
 
-    def set_system_configuration(self, measurement_rate=80, max_range=36,
-                                 metric=True, power_line=60, report_rate=1,
-                                 print_configuration=True):
+    def set_system_configuration(self, trakstar_settings, print_configuration=True):
         """
-        measurement_rate in Hz: 20.0 < rate < 255.0
-        max_range: valid values (in inches): 36.0, 72.0, 144.0
-        metric: True (data in mm) or False (data in inches)
-        power_line in Hz: 50.0 or 60.0 (frequency of the AC power source)
-        report_rate: (int), between 1 and 127 --> report every 2nd, 3rd, etc. value
+        trakstar_settings: TrakSTARSetting
         """
 
         print "* setting system configuration"
 
-        mR = ctypes.c_double(measurement_rate)
-        max_range = ctypes.c_double(max_range)
-        metric = ctypes.c_int(int(metric))
-        power_line = ctypes.c_double(power_line)
-        report_rate = ctypes.c_ushort(report_rate)
+        mR = ctypes.c_double(trakstar_settings.measurement_rate)
+        max_range = ctypes.c_double(trakstar_settings.max_range)
+        metric = ctypes.c_int(int(trakstar_settings.metric))
+        power_line = ctypes.c_double(trakstar_settings.power_line)
+        report_rate = ctypes.c_ushort(trakstar_settings.report_rate)
 
         error_code = api.SetSystemParameter(
             api.SystemParameterType.MEASUREMENT_RATE,
@@ -373,74 +400,61 @@ class TrakSTARInterface(object):
 
 
 class TrakSTARRecordingProcess(Process):
+
     def __init__(self):
         """
+        Control process with the following events
+            request_stop: quit recording
+            request_do_polling : start and pause polling
+
+            flag_is_initialized: indicates init status
+
+        Queues
+            data_queue: received data
+
         """
         super(TrakSTARRecordingProcess, self).__init__()
 
-        self._stop_request = Event()
-        self._recording_flag = Event()
-        self.queue = Queue()
-        self.event_trakstar_is_initialized = Event()
+        self.request_stop = Event()
+        self.request_do_polling = Event()
+        self.flag_is_initialized = Event()
 
-    def stop(self):
-        self._stop_request.set()
+        self.data_queue = Queue()
+        self.command_queue = Queue()
 
-    #def start(self):
-    #    if not isinstance(self.trakstar, TrakSTARInterface) or \
-    #            not self.trakstar.is_init:
-    #        raise RuntimeError("TrakSTAR not initialized")
-    #    else:
-    #        self.trakstar.reset_timer()
-    #        self.pause_recording()
-    #        super(TrakSTARRecordingThread, self).start()
-
-    @property
-    def is_recording(self):
-        return self._recording_flag.is_set()
-
-    def start_recording(self):
-        self._recording_flag.set()
-
-    def pause_recording(self):
-        self._recording_flag.clear()
-
-    def wait_new_data(self, timeout=None):
-        """waits for new data, but returns immediately if recording is
-        paused.
-
-        Returns True if new data are available
-        """
-        if self.is_recording:
-            return self._new_data_flag.wait(timeout)
-        else:
-            return False
-
-    def get_data_array(self):
-        """returns an array of the last acquired data (array of data_dicts).
-        If not data are available it returns am empty array
-        """
-
-        if self._new_data_flag.is_set():
-            self._lock.acquire()
-            rtn = map(lambda x:copy_data_dict(x), self._last_data)
-            self._last_data = []
-            self._lock.release()
-            self._new_data_flag.clear()
-        else:
-            rtn = []
-        return rtn
+        atexit.register(self.request_stop.set)
 
     def run(self):
         trakstar = TrakSTARInterface()
-        self.event_trakstar_is_initialized.clear()
+        self.flag_is_initialized.clear()
         trakstar.initialize()
-        if trakstar.is_initialized:
-            self.event_trakstar_is_initialized.set()
 
-            while not self._stop_request.is_set():
-                if self._recording_flag.is_set():
+        if trakstar.is_init:
+            self.flag_is_initialized.set()
+            trakstar.reset_timer()
+
+            while not self.request_stop.is_set():
+                if self.request_do_polling.is_set():
                     data = trakstar.get_synchronous_data_dict()
-                    self.queue.put_not_wait(data)
+                    self.data_queue.put_not_wait(data)
                 else:
-                    self._recording_flag.wait(timeout=0.2)
+                    self.request_do_polling.wait(timeout=0.2)
+
+                # commands
+                try:
+                    command = self.command_queue.get_notwait()
+                except:
+                    command = None
+
+                if isinstance(command, TrakSTARSettings):
+                    # change settings
+                    self.request_do_polling.clear() # pause
+                    trakstar.set_system_configuration(
+                                    trakstar_settings = command,
+                                    print_configuration=True)
+                elif isinstance(command, TrakSTARDataFileSettings):
+                    # open data file
+                    trakstar.open_data_file(file_settings=command)
+
+        trakstar.close()
+
