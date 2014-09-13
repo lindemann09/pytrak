@@ -1,6 +1,6 @@
 """TrakSTARInterface"""
 import atexit
-from multiprocessing import Process, Event, Queue
+from multiprocessing import Process, Event, Queue, Value
 import ConfigParser
 from pytrak.trakstar import atc3dg_functions as api
 
@@ -138,7 +138,7 @@ class TrakSTARInterface(object):
         self.directory = None
         self.system_configuration = None
         self.attached_sensors = None
-        self.init_time = None
+        self._init_time = None
         self._is_init = False
 
         self.udp = UDPConnection()
@@ -239,7 +239,7 @@ class TrakSTARInterface(object):
         self._is_init = True
 
     def reset_timer(self):
-        self.init_time = time()
+        self._init_time = time()
 
     @property
     def is_init(self):
@@ -261,8 +261,8 @@ class TrakSTARInterface(object):
         """polling data"""
         error_code = api.GetSynchronousRecord(api.ALL_SENSORS,
                                               self._precord, 4 * 1 * 64)
-        cpu_time = int((time() - self.init_time) * 1000)
-        trakstar_time = int((self._record.time0 - self.init_time) * 1000)
+        cpu_time = int((time() - self._init_time) * 1000)
+        trakstar_time = int((self._record.time0 - self._init_time) * 1000)
         if error_code != 0:
             self._error_handler(error_code)
 
@@ -410,7 +410,7 @@ class TrakSTARRecordingProcess(Process):
             flag_is_initialized: indicates init status
 
         Queues
-            data_queue: received data
+            command_queue: received data
 
         """
         super(TrakSTARRecordingProcess, self).__init__()
@@ -419,10 +419,27 @@ class TrakSTARRecordingProcess(Process):
         self.request_do_polling = Event()
         self.flag_is_initialized = Event()
 
-        self.data_queue = Queue()
         self.command_queue = Queue()
+        self._data_queue = Queue()
 
+        self._attached_sensors = Value('b', 0)
         atexit.register(self.request_stop.set)
+
+    @property
+    def attached_sensors(self):
+        return self._attached_sensors.value
+
+    def get_data(self):
+        """Returns an array with all available queued data
+        """
+
+        data_array = []
+        while True:
+            try:
+                data_array.append(self._data_queue.get_nowait())
+            except:
+                break
+        return data_array
 
     def run(self):
         trakstar = TrakSTARInterface()
@@ -431,12 +448,13 @@ class TrakSTARRecordingProcess(Process):
 
         if trakstar.is_init:
             self.flag_is_initialized.set()
+            self._attached_sensors.value = trakstar.attached_sensors
             trakstar.reset_timer()
 
             while not self.request_stop.is_set():
                 if self.request_do_polling.is_set():
                     data = trakstar.get_synchronous_data_dict()
-                    self.data_queue.put_not_wait(data)
+                    self._data_queue.put_not_wait(data)
                 else:
                     self.request_do_polling.wait(timeout=0.2)
 
@@ -452,6 +470,7 @@ class TrakSTARRecordingProcess(Process):
                     trakstar.set_system_configuration(
                                     trakstar_settings = command,
                                     print_configuration=True)
+                    self._attached_sensors.value = trakstar.attached_sensors
                 elif isinstance(command, TrakSTARDataFileSettings):
                     # open data file
                     trakstar.open_data_file(file_settings=command)

@@ -1,5 +1,3 @@
-# FIXME remote control not yet working
-
 import os
 import atexit
 from expyriment import control, stimuli, design, io, misc
@@ -11,7 +9,6 @@ from recording_screen import RecordingScreen
 from plotter_xyz import PlotterXYZ
 from trakstar import TrakSTARRecordingProcess, TrakSTARSettings, TrakSTARDataFileSettings
 import change_trakstar_settings as ts_change
-
 
 #TODO missing ip connection details
 
@@ -223,7 +220,7 @@ def record_data(remote_control, recording_screen):
     refresh_interval = 50
     refresh_timer = misc.Clock()
     #history = {} # make history
-    #for sensor in trakstar.attached_sensors:
+    #for sensor in trakstar._attached_sensors:
     #    history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
 
     recording_screen.stimulus().present()
@@ -231,7 +228,7 @@ def record_data(remote_control, recording_screen):
 
 
     # start plotter threads
-    plotter = PlotterXYZ(attached_sensors=trakstar.attached_sensors, ### FIXME get atched sensors
+    plotter = PlotterXYZ(attached_sensors=trakstar.attached_sensors,
                          expyriment_screen_size=exp.screen.size,
                          refresh_time = 0.02)
     plotter.start()
@@ -246,13 +243,7 @@ def record_data(remote_control, recording_screen):
         command_array = [process_key_input(key)]
 
         # get data and process
-        data_array = []
-        while True:
-            try:
-                data_array.append(trakstar.data_queue.get_nowait())
-            except:
-                break
-
+        data_array = trakstar.get_data()
         for data in data_array:
             if len(data['udp']) > 0:
                 set_marker = True
@@ -261,7 +252,7 @@ def record_data(remote_control, recording_screen):
             if remote_control:
                 pass
                 #FIXME command_array.append(process_udp_input(data['udp']))
-            #for sensor in trakstar.attached_sensors:
+            #for sensor in trakstar._attached_sensors:
             #    history[sensor].update(data[sensor][:3])
 
         # refresh screen once in a while

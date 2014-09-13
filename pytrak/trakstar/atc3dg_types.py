@@ -93,7 +93,7 @@ class BIRD_ERROR_CODES:
      BIRD_ERROR_INTERFACE,  #40 <I> BIRD PCI interface error
      BIRD_ERROR_PCB_EPROM_FAILURE,  #41 <I> BIRD on-board EPROM failure
      BIRD_ERROR_SYSTEM_STACK_OVERFLOW,  #42 <I> BIRD program stack overrun
-     BIRD_ERROR_QUEUE_OVERRUN,  #43 <I> BIRD error message data_queue overrun
+     BIRD_ERROR_QUEUE_OVERRUN,  #43 <I> BIRD error message _data_queue overrun
      BIRD_ERROR_PCB_EEPROM_FAILURE,  #44 <I> PCB bad EEPROM
      BIRD_ERROR_SENSOR_SATURATION_END,  #45 <I> Sensor has gone out of saturation
      BIRD_ERROR_NEW_TRANSMITTER_ATTACHED,  #46 <O> new transmitter attached

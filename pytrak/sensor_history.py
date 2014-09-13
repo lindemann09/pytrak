@@ -2,7 +2,6 @@
 
 import math
 
-
 class SensorHistory():
     """The Sensory History keeps track of the last n recorded sample and
     calculates online the moving average (running mean).

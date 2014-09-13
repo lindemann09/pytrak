@@ -149,7 +149,7 @@ if _api is not None:
         Remarks:            Returns a record after next measurement cycle. Puts
                             system into mode where records are generated 1/cycle.
                             Will return one and only one record per measurement
-                            cycle. Will data_queue the records for each measurement
+                            cycle. Will _data_queue the records for each measurement
                             cycle if command not issued sufficiently often. If
                             command issued too often will time-out with no data.
                             (old style BIRD STREAM mode)
@@ -272,7 +272,7 @@ if _api is not None:
 
         Return Value:       error status
 
-        Remarks:            Returns next error in data_queue
+        Remarks:            Returns next error in _data_queue
                             if available
 
     """
