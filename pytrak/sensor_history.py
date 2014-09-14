@@ -16,7 +16,7 @@ class SensorHistory():
         self.history = [[0] * number_of_parameter] * history_size
         self.moving_average = [0] * number_of_parameter
         self._correction_cnt = 0
-        self._previousmoving_average = self.moving_average
+        self._previous_moving_average = self.moving_average
 
     def __str__(self):
         return str(self.history)
@@ -32,7 +32,7 @@ class SensorHistory():
 
         """
 
-        self._previousmoving_average = self.moving_average
+        self._previous_moving_average = self.moving_average
         pop = self.history.pop(0)
         self.history.append(values)
         # pop first element and calc moving average
@@ -81,18 +81,18 @@ class SensorHistory():
         return len(self.history[0])
 
     @property
-    def previousmoving_average(self):
-        return self._previousmoving_average
+    def previous_moving_average(self):
+        return self._previous_moving_average
 
     @property
     def replacement(self):
         """returns the current replacement based on filtered data"""
         return map(lambda x: x[0] - x[1], zip(self.moving_average,
-                                              self._previousmoving_average))
+                                              self._previous_moving_average))
 
     def velocity(self, sampling_rate):
         """returns the current velocity based on filtered data"""
-        return self.distance_to_point(self._previousmoving_average) * sampling_rate
+        return self.distance_to_point(self._previous_moving_average) * sampling_rate
 
 
 if __name__ == "__main__":
