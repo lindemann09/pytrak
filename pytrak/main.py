@@ -118,6 +118,7 @@ def prepare_recoding(remote_control, filename):
         s = udp_connection.poll()
         while s is None or s.lower() != 'done':
             logo_text_line(text="Waiting for settings...").present()
+            exp.keyboard.process_control_keys()
             exp.clock.wait(50)
             if s is not None:
                 settings.process_udp_input(s)
@@ -198,6 +199,8 @@ def process_key_input(key=None):
         return Command.normalize_plotting
     elif key == misc.constants.K_SPACE:
         return Command.set_marker
+    elif key == misc.constants.K_r:
+        return Command.set_reference_position
     return None
 
 def process_udp_input(udp_input):
@@ -217,7 +220,7 @@ def record_data(remote_control, recording_screen):
 
     refresh_interval = 50
     refresh_timer = misc.Clock()
-    # history = SensorHistory(history_size = 5, number_of_parameter=3) # TODO: set history size
+    history = SensorHistory(history_size = 10, number_of_parameter=3) # TODO: set history size
 
     recording_screen.stimulus().present()
 
@@ -234,6 +237,9 @@ def record_data(remote_control, recording_screen):
     trakstar_thread.start_recording()
     quit_recording = False
     set_marker = False
+    was_moving = None
+    was_inside = None
+    detection_sensor_id = 1 # TODO: which sensor?
     while not quit_recording:
         # process keyboard
         key = exp.keyboard.check(check_for_control_keys=False)
@@ -242,14 +248,39 @@ def record_data(remote_control, recording_screen):
         # get data and process
         data_array = trakstar_thread.get_data_array()
         for data in data_array:
+            if data.has_key(detection_sensor_id):
+                history.update(data[detection_sensor_id][:3]) 
+                ## movement detection
+                # move = history.is_moving(velocity_threshold=4,
+                #                         min_n_samples=10,
+                #                         sampling_rate=80) # TODO settings!
+                #if move is not None and move != was_moving:
+                #    set_marker = True
+                #    was_moving = move
+                #    if remote_control: # output
+                #        if move:
+                #            udp_connection.send("M_START")
+                #        else:
+                #            udp_connection.send("M_STOP")
+
+                # position detection
+                inside = history.is_in_reference_area()
+                if inside is not None and inside != was_inside:
+                    set_marker = True
+                    was_inside = inside
+                    if remote_control: # output
+                        if inside:
+                            udp_connection.send("D_INSIDE")
+                        else:
+                            udp_connection.send("D_OUTSIDE")
+                
             if len(data['udp']) > 0:
                 set_marker = True
             plotter.add_values(data, set_marker=set_marker)
             set_marker = False
-            if remote_control:
+
+            if remote_control: # input
                 command_array.append(process_udp_input(data['udp']))
-            # history.update(data[0][:3]) # TODO: which sensor?
-            # history.is_moving()
 
         # refresh screen once in a while
         if refresh_timer.stopwatch_time >=refresh_interval:
@@ -276,6 +307,9 @@ def record_data(remote_control, recording_screen):
                 plotter.scaling -= 0.01
             elif command == Command.normalize_plotting:
                 plotter.reset_start_values()
+            elif command == Command.set_reference_position:
+                print "set reference point"
+                history.set_reference_area(radius= 10) # TODO settings
             elif command == Command.set_marker:
                 set_marker = True
 

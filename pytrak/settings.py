@@ -35,7 +35,7 @@ data_write_quality = True
 
 class Command:
     quit, toggle_pause, increase_scaling, decrease_scaling, normalize_plotting,\
-    set_marker = range(6)
+    set_marker, set_reference_position = range(7)
 
 colours = {1: misc.constants.C_RED,
            2: misc.constants.C_GREEN,

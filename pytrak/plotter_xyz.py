@@ -8,7 +8,7 @@ from plotter import PlotterThread, lock_expyriment
 class PlotterXYZ(object):
     def __init__(self, attached_sensors, expyriment_screen_size, refresh_time):
         self.refresh_time = refresh_time
-        self.n_sensors = len(attached_sensors)
+        self.attached_sensors = attached_sensors
         row_colours = []
         for sensor in attached_sensors:
             row_colours.append(settings.colours[sensor])
@@ -17,7 +17,8 @@ class PlotterXYZ(object):
         self._update_rects = []
         h = settings.plotter_height
         for position in [(0, h+5), (0, 0), (0, -(h+5))]:
-            plotter_thread = PlotterThread(n_data_rows=self.n_sensors,
+            plotter_thread = PlotterThread(
+                        n_data_rows=len(self.attached_sensors),
                         data_row_colours=row_colours,
                         y_range=(-h/2, h/2),
                         width=settings.plotter_width,
@@ -49,13 +50,15 @@ class PlotterXYZ(object):
         self._start_values = None
 
     def add_values(self, data, set_marker=False):
-        mtx = np.array([data[1][0:3], data[2][0:3], data[3][0:3]]) * self.scaling
-        mtx = mtx.astype(int)
+        mtx = []
+        for x in self.attached_sensors:
+            mtx.append(data[x][0:3])
+        mtx = np.array(mtx, dtype=int) * self.scaling
         if self._start_values is None:
             self._start_values = mtx
         else:
             mtx = mtx - self._start_values
-            for s in range(self.n_sensors):
+            for s in range(3):
                 self.plotter_array[s].add_values(mtx[:, s],
                                     set_marker = set_marker)
 

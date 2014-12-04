@@ -19,6 +19,8 @@ class SensorHistory():
         self._previous_moving_average = self.moving_average
 
         self._motion_index = 0
+        self._reference_position = None
+        self._reference_radius = None
 
     def __str__(self):
         return str(self.history)
@@ -101,9 +103,8 @@ class SensorHistory():
 
         Returns
         -------
-        movement_change : `None` if movement has not changed
-                          `True` if movement started
-                          `False`if movement stopped
+        is_moving : `True` if sensor moving or `False` if sensor is still
+                    otherwise (if unclear) `None`
 
         """
 
@@ -119,11 +120,24 @@ class SensorHistory():
                 self._motion_index = -1
 
         if abs(self._motion_index) >= min_n_samples:
-            return (self._moving_indx > 0)
+            return (self._motion_index > 0)
 
         return None
 
+    def set_reference_area(self, radius):
+        self._reference_position = self.moving_average
+        self._reference_radius = radius
 
+    def reset_reference_area(self):
+        self._reference_position = None
+        self._reference_radius = None
+        
+    def is_in_reference_area(self):
+        if self._reference_radius is not None:
+            return (self.distance_to_point(self._reference_position) <=
+                        self._reference_radius)
+        return None
+        
 if __name__ == "__main__":
     import random
     def run():
