@@ -18,6 +18,8 @@ class SensorHistory():
         self._correction_cnt = 0
         self._previous_moving_average = self.moving_average
 
+        self._motion_index = 0
+
     def __str__(self):
         return str(self.history)
 
@@ -93,6 +95,33 @@ class SensorHistory():
     def velocity(self, sampling_rate):
         """returns the current velocity based on filtered data"""
         return self.distance_to_point(self._previous_moving_average) * sampling_rate
+
+    def is_moving(self, velocity_threshold, min_n_samples, sampling_rate):
+        """min_n_samples : minimum number of samples in motion/non-motion
+
+        Returns
+        -------
+        movement_change : `None` if movement has not changed
+                          `True` if movement started
+                          `False`if movement stopped
+
+        """
+
+        if self.velocity(sampling_rate) > velocity_threshold:
+            if self._motion_index > 0:
+                self._motion_index += 1
+            else:
+                self._motion_index = 1
+        else:
+            if self._motion_index < 0:
+                self._motion_index -= 1
+            else:
+                self._motion_index = -1
+
+        if abs(self._motion_index) >= min_n_samples:
+            return (self._moving_indx > 0)
+
+        return None
 
 
 if __name__ == "__main__":

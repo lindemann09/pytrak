@@ -8,7 +8,7 @@ from settings import Command
 from recording_screen import RecordingScreen
 from plotter_xyz import PlotterXYZ
 from trakstar import TrakSTARInterface, TrakSTARRecordingThread
-
+from sensor_history import SensorHistory
 
 
 
@@ -217,9 +217,7 @@ def record_data(remote_control, recording_screen):
 
     refresh_interval = 50
     refresh_timer = misc.Clock()
-    #history = {} # make history
-    #for sensor in trakstar.attached_sensors:
-    #    history[sensor] = SensorHistory(history_size=5, number_of_parameter=3)
+    # history = SensorHistory(history_size = 5, number_of_parameter=3) # TODO: set history size
 
     recording_screen.stimulus().present()
 
@@ -250,8 +248,8 @@ def record_data(remote_control, recording_screen):
             set_marker = False
             if remote_control:
                 command_array.append(process_udp_input(data['udp']))
-            #for sensor in trakstar.attached_sensors:
-            #    history[sensor].update(data[sensor][:3])
+            # history.update(data[0][:3]) # TODO: which sensor?
+            # history.is_moving()
 
         # refresh screen once in a while
         if refresh_timer.stopwatch_time >=refresh_interval:
