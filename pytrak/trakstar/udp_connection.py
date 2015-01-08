@@ -66,8 +66,10 @@ class UDPConnection(object):
                                                        self.udp_port, self.peer_ip)
 
     def poll(self):
-        """returns data None if not data found
+        """returns data or None if no data found
         process also commands
+
+        if send is unkown input is ignored
         """
 
         try:
@@ -126,7 +128,7 @@ class UDPConnection(object):
         return False
 
     def unconnect_peer(self, timeout=1.0):
-        self.send(UDPConnection.COMMAND_REPLY)
+        self.send(UDPConnection.UNCONNECT)
         self.peer_ip = None
 
     @property
