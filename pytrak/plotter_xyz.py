@@ -26,21 +26,11 @@ class PlotterXYZ(object):
                         background_colour=settings.plotter_background_colour,
                         axis_colour=settings.plotter_axis_colour)
             self.plotter_array.append(plotter_thread)
-            self._update_rects.append(
-                PlotterXYZ._get_plotter_rect(plotter_thread._plotter,
+            self._update_rects.append(plotter_thread.get_plotter_rect(
                                     expyriment_screen_size))
 
         self._start_values = None
         self.scaling = settings.plotter_scaling
-
-    @staticmethod
-    def _get_plotter_rect(plotter, screen_size):
-            half_screen_size = (screen_size[0] / 2, screen_size[1] / 2)
-            pos = plotter.absolute_position
-            stim_size = plotter.surface_size
-            rect_pos = (pos[0] + half_screen_size[0] - stim_size[0] / 2,
-                            - pos[1] + half_screen_size[1] - stim_size[1] / 2)
-            return pygame.Rect(rect_pos, stim_size)
 
     @property
     def update_rects(self):

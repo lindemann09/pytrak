@@ -239,6 +239,14 @@ class PlotterThread(threading.Thread):
         self._lock_new_values = threading.Lock()
         self._stop_request = threading.Event()
 
+    def get_plotter_rect(self, screen_size):
+            half_screen_size = (screen_size[0] / 2, screen_size[1] / 2)
+            pos = self._plotter.absolute_position
+            stim_size = self._plotter.surface_size
+            rect_pos = (pos[0] + half_screen_size[0] - stim_size[0] / 2,
+                            - pos[1] + half_screen_size[1] - stim_size[1] / 2)
+            return pygame.Rect(rect_pos, stim_size)
+
     def stop(self):
         self.join()
 
