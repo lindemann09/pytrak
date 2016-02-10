@@ -2,8 +2,10 @@
 
 Python api wrapper & recording server for 3D Guidance trakSTAR
 
-**NOTE**: So far, the Python api wrapper is experimental under Linux and has been merely tested under Windows.
+*Released under the GNU General Public License (v3)*
 
+ Oliver Lindemann <oliver.lindemann@cognitive-psychology.eu>
+ 
 Dependencies
 ------------
 * Python 2.7 & NumPy 1.7 or higher
@@ -23,8 +25,4 @@ https://github.com/lindemann09/pytrak/
 
 Please [submit](https://github.com/lindemann09/pytrak/issues/new) any bugs you encounter to the Github issue tracker.
 
-License
--------
-
-Released under the GNU General Public License (v3)
-
+**NOTE**: So far, the Python api wrapper is experimental under Linux and has been merely tested under Windows.
