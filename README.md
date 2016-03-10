@@ -1,6 +1,6 @@
 ![PyTrak](https://raw.githubusercontent.com/lindemann09/pytrak/master/pytrak/pytrak_logo.png)
 
-Motion tracking server for 3D Guidance trakSTAR
+Python-based motion tracking software for 3D Guidance trakSTAR
 
 *Released under the GNU General Public License (v3)*
 
