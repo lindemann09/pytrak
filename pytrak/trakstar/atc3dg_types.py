@@ -131,14 +131,14 @@ class BIRD_ERROR_CODES:
      BIRD_ERROR_INVALID_CONFIGURATION,  #66 < > Invalid configuration
 
      # VPD error code
-     BIRD_ERROR_TRANSMITTER_RUNNING) = map(enum_type, range(68))  #67 < > TX running while reading/writing VPD
+     BIRD_ERROR_TRANSMITTER_RUNNING) = list(map(enum_type, list(range(68))))  #67 < > TX running while reading/writing VPD
 
     BIRD_ERROR_MAXIMUM_VALUE = 0x7F  #         ## value = number of error codes ##
 
 
 class MessageType:
     (SIMPLE_MESSAGE,  # short string describing error code
-     VERBOSE_MESSAGE ) = map(enum_type, range(2))  # long string describing error code
+     VERBOSE_MESSAGE ) = list(map(enum_type, list(range(2))))  # long string describing error code
 
 
 class TransmitterParameterType:
@@ -148,7 +148,7 @@ class TransmitterParameterType:
      VITAL_PRODUCT_DATA_TX,  # single byte parameter to be read/write from VPD section of xmtr EEPROM
      MODEL_STRING_TX,  # 11 byte null terminated character string
      PART_NUMBER_TX,  # 16 byte null terminated character string
-     END_OF_TX_LIST) = map(enum_type, range(7))
+     END_OF_TX_LIST) = list(map(enum_type, list(range(7))))
 
 
 class SensorParameterType:
@@ -169,7 +169,7 @@ class SensorParameterType:
      PART_NUMBER_RX,  # 16 byte null terminated character string
      MODEL_STRING_PREAMP,  # 11 byte null terminated character string
      PART_NUMBER_PREAMP,  # 16 byte null terminated character string
-     END_OF_RX_LIST) = map(enum_type, range(18))
+     END_OF_RX_LIST) = list(map(enum_type, list(range(18))))
 
 
 class BoardParameterType:
@@ -180,7 +180,7 @@ class BoardParameterType:
      VITAL_PRODUCT_DATA_PCB,  # single byte parameter to be read/write from VPD section of xmtr EEPROM
      MODEL_STRING_PCB,  # 11 byte null terminated character string
      PART_NUMBER_PCB,  # 16 byte null terminated character string
-     END_OF_PCB_LIST_BRD) = map(enum_type, range(8))
+     END_OF_PCB_LIST_BRD) = list(map(enum_type, list(range(8))))
 
 
 class SystemParameterType:
@@ -198,18 +198,18 @@ class SystemParameterType:
      LOGGING,  # Boolean
      RESET,  # Boolean
      AUTOCONFIG,  # BYTE 1-127
-     END_OF_LIST) = map(enum_type, range(15))  # end of list place holder
+     END_OF_LIST) = list(map(enum_type, list(range(15))))  # end of list place holder
 
 
 class CommunicationsMediaType:
     (USB,  # Auto select USB driver
      RS232,  # Force to RS232
-     TCPIP) = map(enum_type, range(3))  # Force to TCP/IP
+     TCPIP) = list(map(enum_type, list(range(3))))  # Force to TCP/IP
 
 
 class FilterOption:
     (NO_FILTER,
-     DEFAULT_FLOCK_FILTER) = map(enum_type, range(2))
+     DEFAULT_FLOCK_FILTER) = list(map(enum_type, list(range(2))))
 
 
 class HemisphereType:
@@ -218,12 +218,12 @@ class HemisphereType:
      TOP,
      BOTTOM,
      LEFT,
-     RIGHT) = map(enum_type, range(6))
+     RIGHT) = list(map(enum_type, list(range(6))))
 
 
 class AgcModeType:
     (TRANSMITTER_AND_SENSOR_AGC,  # Old style normal addressing mode
-     SENSOR_AGC_ONLY) = map(enum_type, range(2))  # Old style extended addressing mode
+     SENSOR_AGC_ONLY) = list(map(enum_type, list(range(2))))  # Old style extended addressing mode
 
 
 class DataFormatType:
@@ -281,7 +281,7 @@ class DataFormatType:
      # New types for button and wrapper
      DOUBLE_POSITION_ANGLES_MATRIX_QUATERNION_TIME_Q_BUTTON,
 
-     MAXIMUM_FORMAT_CODE) = map(enum_type, range(39))
+     MAXIMUM_FORMAT_CODE) = list(map(enum_type, list(range(39))))
 
 
 class BoardTypes:
@@ -297,7 +297,7 @@ class BoardTypes:
      PCIBIRD_FLAT_MICRO2,  # flat transmitter, dual TEM sensor (all types)
      PCIBIRD_DSP4,  # Standalone, DSP, 4 sensor
      PCIBIRD_UNKNOWN,  # default
-     ATC3DG_BB) = map(enum_type, range(13))  # BayBird
+     ATC3DG_BB) = list(map(enum_type, list(range(13))))  # BayBird
 
 
 class DeviceTypes:
@@ -315,7 +315,7 @@ class DeviceTypes:
      TYPE_800_BB_SENSOR,  # BayBird sensor
      TYPE_800_BB_STD_TRANSMITTER,  # BayBird standard TX
      TYPE_800_BB_SMALL_TRANSMITTER,  # BayBird small TX
-     TYPE_090_BB_SENSOR) = map(enum_type, range(15))  # Baybird 0.9 mm sensor
+     TYPE_090_BB_SENSOR) = list(map(enum_type, list(range(15))))  # Baybird 0.9 mm sensor
 
 
 #################################################
@@ -413,11 +413,11 @@ class BOARD_REVISIONS(ct.Structure):
 #
 
 class SHORT_POSITION(ct.Structure):
-    _fields_ = zip("xyz", [ct.c_short] * 3)
+    _fields_ = list(zip("xyz", [ct.c_short] * 3))
 
 
 class SHORT_ANGLES(ct.Structure):
-    _fields_ = zip("aer", [ct.c_short] * 3)
+    _fields_ = list(zip("aer", [ct.c_short] * 3))
 
 
 class SHORT_MATRIX(ct.Structure):
@@ -444,11 +444,11 @@ class SHORT_POSITION_QUATERNION(ct.Structure):
 
 
 class DOUBLE_POSITION(ct.Structure):
-    _fields_ = zip("xyz", [ct.c_double] * 3)
+    _fields_ = list(zip("xyz", [ct.c_double] * 3))
 
 
 class DOUBLE_ANGLES(ct.Structure):
-    _fields_ = zip("aer", [ct.c_double] * 3)
+    _fields_ = list(zip("aer", [ct.c_double] * 3))
 
 
 class DOUBLE_MATRIX(ct.Structure):

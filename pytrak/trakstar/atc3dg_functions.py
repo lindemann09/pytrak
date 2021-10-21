@@ -8,12 +8,12 @@ Author: O. Lindemann
 import sys
 import ctypes
 
-from atc3dg_types import *
+from .atc3dg_types import *
 
 
 if sys.platform.startswith("linux"):
     # linux isn't tested
-    print "Please ensure that ATCdaemon[32/64] is running"
+    print("Please ensure that ATCdaemon[32/64] is running")
     if ctypes.sizeof(ctypes.c_voidp) * 8 == 64:
         dll_name = "/usr/lib64/ATC3DGlib64.so"
     else:
@@ -24,11 +24,11 @@ else:
     else:
         dll_name = "ATC3DG.DLL"
 
-print "loading trakstar library {0}".format(dll_name)
+print("loading trakstar library {0}".format(dll_name))
 try:
     _api = ctypes.CDLL(dll_name)
 except:
-    print "Can't find trakstar library"
+    print("Can't find trakstar library")
     _api = None
 
 if _api is not None:

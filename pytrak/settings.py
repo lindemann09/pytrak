@@ -4,7 +4,7 @@
 """
 
 import atexit
-import ConfigParser
+import configparser
 from expyriment import stimuli, misc, io
 
 #####
@@ -35,7 +35,7 @@ data_write_quality = True
 
 class Command:
     quit, toggle_pause, increase_scaling, decrease_scaling, normalize_plotting,\
-    set_marker, set_reference_position = range(7)
+    set_marker, set_reference_position = list(range(7))
 
 colours = {1: misc.constants.C_RED,
            2: misc.constants.C_GREEN,
@@ -45,7 +45,7 @@ colours = {1: misc.constants.C_RED,
 t_wait = 1500
 
 def save():
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.add_section(cfg_section)
     config.set(cfg_section, "measurement_rate", measurement_rate)
     config.set(cfg_section, "max_range", max_range)
@@ -60,7 +60,7 @@ def read():
     global measurement_rate, max_range
     global report_rate, power_line, metric, circle_diameter
 
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     try:
         config.read(cfg_filename)
         measurement_rate = config.getint(cfg_section, 'measurement_rate')
@@ -69,7 +69,7 @@ def read():
         power_line = config.getint(cfg_section, 'power_line')
         metric = config.getboolean(cfg_section, 'metric')
     except:
-        print "Creating settings file: ", cfg_filename
+        print("Creating settings file: ", cfg_filename)
         save()
         return False
     return True
@@ -98,7 +98,7 @@ def get_input(exp, i):
     global measurement_rate, max_range, report_rate, power_line, metric
     if i == 1:
         measurement_rate = int(io.TextInput("Measurement rate (20 Hz < rate < 255 Hz):", length=3,
-                                            ascii_filter=range(ord("0"), ord("9") + 1)).get())
+                                            ascii_filter=list(range(ord("0"), ord("9") + 1))).get())
         if measurement_rate < 20 or measurement_rate > 255:
             measurement_rate = 80
             invalid_value()
@@ -108,7 +108,7 @@ def get_input(exp, i):
         return
     elif i == 2:
         max_range = int(io.TextInput("Maximum range of transmitter (36, 72, 144 inches):", length=3,
-                                     ascii_filter=range(ord("1"), ord("5")) + [ord("6"), ord("7")]).get())
+                                     ascii_filter=list(range(ord("1"), ord("5"))) + [ord("6"), ord("7")]).get())
         if max_range not in [36, 72, 144]:
             max_range = 36
             invalid_value()
@@ -118,7 +118,7 @@ def get_input(exp, i):
         return
     elif i == 3:
         report_rate = int(io.TextInput("Report rate of the data (1 <= rate <= 127):", length=3,
-                                       ascii_filter=range(ord("0"), ord("9") + 1)).get())
+                                       ascii_filter=list(range(ord("0"), ord("9") + 1))).get())
         if report_rate < 1 or report_rate > 127:
             report_rate = 1
             invalid_value()

@@ -11,7 +11,7 @@ lock_expyriment = threading.Lock()
 Numpy_array_type = type(np.array([]))
 
 def inherit_docs(cls):
-    for name, func in vars(cls).items():
+    for name, func in list(vars(cls).items()):
         if not func.__doc__:
             for parent in cls.__bases__:
                 parfunc = getattr(parent, name)

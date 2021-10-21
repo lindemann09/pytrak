@@ -9,13 +9,13 @@ import os
 import ctypes
 from time import localtime, strftime, time
 import numpy as np
-from udp_connection import UDPConnection
+from .udp_connection import UDPConnection
 
 def data_dict2string(data_dict, angles=False, quality=False, times=True,
                 cpu_times=False, udp=True):
     txt = ""
     for sensor in range(1, 5):
-        if data_dict.has_key(sensor):
+        if sensor in data_dict:
             if times:
                 txt = txt + "{0},".format(data_dict["time"])
             txt = txt + "%d,%.4f,%.4f,%.4f" % \
@@ -40,14 +40,14 @@ def data_dict2string(data_dict, angles=False, quality=False, times=True,
 
 def get_attached_sensors(data_dic):
     """return an array with the ids of attached sensors from a data dict"""
-    return filter(lambda x:data_dic.has_key(x), [1,2,3,4])
+    return [x for x in [1,2,3,4] if x in data_dic]
 
 
 def copy_data_dict(old):
     """deep copy of the data dict"""
     new = old.copy()
     # copy of numpyarray for each attached sensor
-    for s in filter(lambda x:new.has_key(x), [1,2,3,4]):
+    for s in [x for x in [1,2,3,4] if x in new]:
         new[s] = np.copy(old[s])
     return new
 
@@ -70,7 +70,7 @@ class TrakSTARInterface(object):
         self._is_init = False
 
         self.udp = UDPConnection()
-        print self.udp
+        print(self.udp)
 
     def __del__(self):
         self.close(ignore_error=True)
@@ -78,7 +78,7 @@ class TrakSTARInterface(object):
     def close(self, ignore_error=True):
         if not self.is_init:
             return
-        print "* closing trakstar"
+        print("* closing trakstar")
         self.close_data_file()
         self.attached_sensors = None
         self.system_configuration = None
@@ -111,7 +111,7 @@ class TrakSTARInterface(object):
 
             if os.path.isfile(directory + os.path.sep + self.filename):
                 #
-                print "data file already exists, using time_stamp"
+                print("data file already exists, using time_stamp")
                 time_stamp_filename = True
             else:
                 break
@@ -141,7 +141,7 @@ class TrakSTARInterface(object):
     def initialize(self):
         if self.is_init:
             return
-        print "* Initializing trakstar ..."
+        print("* Initializing trakstar ...")
         error_code = api.InitializeBIRDSystem()
         if error_code != 0:
             self._error_handler(error_code)
@@ -171,12 +171,12 @@ class TrakSTARInterface(object):
         return self._is_init
 
     def _error_handler(self, error_code):
-        print "** Error: ", error_code
+        print("** Error: ", error_code)
         txt = " " * 500
         pbuffer = ctypes.c_char_p(txt)
         api.GetErrorText(error_code, pbuffer, ctypes.c_int(500),
                          api.MessageType.VERBOSE_MESSAGE)
-        print pbuffer.value
+        print(pbuffer.value)
         self.close(ignore_error=True)
         raise RuntimeError("** trakSTAR Error")
 
@@ -266,10 +266,10 @@ class TrakSTARInterface(object):
         self.attached_sensors = attached_sensors
 
         if print_configuration:
-            print TrakSTARInterface.configuration_text(self.attached_sensors,
+            print(TrakSTARInterface.configuration_text(self.attached_sensors,
                                  sysconf.measurementRate, sysconf.maximumRange,
                                  bool(sysconf.metric), sysconf.powerLineFrequency,
-                                 report_rate)
+                                 report_rate))
 
     def set_system_configuration(self, measurement_rate=80, max_range=36,
                                  metric=True, power_line=60, report_rate=1,
@@ -282,7 +282,7 @@ class TrakSTARInterface(object):
         report_rate: (int), between 1 and 127 --> report every 2nd, 3rd, etc. value
         """
 
-        print "* setting system configuration"
+        print("* setting system configuration")
 
         mR = ctypes.c_double(measurement_rate)
         max_range = ctypes.c_double(max_range)
@@ -396,7 +396,7 @@ class TrakSTARRecordingThread(threading.Thread):
 
         if self._new_data_flag.is_set():
             self._lock.acquire()
-            rtn = map(lambda x:copy_data_dict(x), self._last_data)
+            rtn = [copy_data_dict(x) for x in self._last_data]
             self._last_data = []
             self._lock.release()
             self._new_data_flag.clear()

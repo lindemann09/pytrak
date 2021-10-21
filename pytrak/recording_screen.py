@@ -1,6 +1,6 @@
 from time import strftime
 from expyriment import stimuli
-from __init__ import __version__
+from .__init__ import __version__
 
 class RecordingScreen(object):
     def __init__(self, window_size, filename):
