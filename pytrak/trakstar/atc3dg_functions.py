@@ -44,7 +44,7 @@ if _api is not None:
                             has occurred and the system needs to be
                             restarted.untab
     """
-    InitializeBIRDSystem = _api._InitializeBIRDSystem
+    InitializeBIRDSystem = _api.InitializeBIRDSystem
     InitializeBIRDSystem.restype = ctypes.c_int
 
     """ GetBIRDSystemConfiguration
@@ -62,7 +62,7 @@ if _api is not None:
                             the number of devices is known, (e.g. n) the
                             range of IDs for those devices becomes 0..(n-1)
     """
-    GetBIRDSystemConfiguration = _api._GetBIRDSystemConfiguration
+    GetBIRDSystemConfiguration = _api.GetBIRDSystemConfiguration
     GetBIRDSystemConfiguration.restype = ctypes.c_int
     GetBIRDSystemConfiguration.argtypes = [ctypes.POINTER(SYSTEM_CONFIGURATION)]
 
@@ -79,7 +79,7 @@ if _api is not None:
                             Items of interest are the serial number and status.
 
     """
-    GetTransmitterConfiguration = _api._GetTransmitterConfiguration
+    GetTransmitterConfiguration = _api.GetTransmitterConfiguration
     GetTransmitterConfiguration.restype = ctypes.c_int
     GetTransmitterConfiguration.argtypes = [ctypes.c_ushort,
                                             ctypes.POINTER(TRANSMITTER_CONFIGURATION)]
@@ -94,7 +94,7 @@ if _api is not None:
         Remarks:            Similar to the transmitter function.
 
     """
-    GetSensorConfiguration = _api._GetSensorConfiguration
+    GetSensorConfiguration = _api.GetSensorConfiguration
     GetSensorConfiguration.restype = ctypes.c_int
     GetSensorConfiguration.argtypes = [ctypes.c_ushort,
                                        ctypes.POINTER(SENSOR_CONFIGURATION)]
@@ -114,7 +114,7 @@ if _api is not None:
                             only provided for "accounting" purposes.
 
     """
-    GetBoardConfiguration = _api._GetBoardConfiguration
+    GetBoardConfiguration = _api.GetBoardConfiguration
     GetBoardConfiguration.restype = ctypes.c_int
     GetBoardConfiguration.argtypes = [ctypes.c_ushort,
                                       ctypes.POINTER(BOARD_CONFIGURATION)]
@@ -134,7 +134,7 @@ if _api is not None:
                             (Old style BIRD POINT mode)
 
     """
-    GetAsynchronousRecord = _api._GetAsynchronousRecord
+    GetAsynchronousRecord = _api.GetAsynchronousRecord
     GetAsynchronousRecord.restype = ctypes.c_int
     GetAsynchronousRecord.argtypes = [ctypes.c_ushort, ctypes.c_void_p, ctypes.c_int]
 
@@ -155,7 +155,7 @@ if _api is not None:
                             (old style BIRD STREAM mode)
 
     """
-    GetSynchronousRecord = _api._GetSynchronousRecord
+    GetSynchronousRecord = _api.GetSynchronousRecord
     GetSynchronousRecord.restype = ctypes.c_ushort
     GetSynchronousRecord.argtypes = [ctypes.c_ushort, ctypes.c_void_p, ctypes.c_int]
 
@@ -173,7 +173,7 @@ if _api is not None:
                             generated if the buffer is incorrectly sized
 
     """
-    GetSystemParameter = _api._GetSystemParameter
+    GetSystemParameter = _api.GetSystemParameter
     GetSystemParameter.restype = ctypes.c_int
     GetSystemParameter.argtypes = [enum_type, ctypes.c_void_p, ctypes.c_int]
 
@@ -189,7 +189,7 @@ if _api is not None:
                             to set (write) the parameter.
 
     """
-    SetSystemParameter = _api._SetSystemParameter
+    SetSystemParameter = _api.SetSystemParameter
     SetSystemParameter.restype = ctypes.c_int
     SetSystemParameter.argtypes = [enum_type, ctypes.c_void_p, ctypes.c_int]
 
@@ -209,7 +209,7 @@ if _api is not None:
                             generated if the buffer is incorrectly sized
 
     """
-    GetSensorParameter = _api._GetSensorParameter
+    GetSensorParameter = _api.GetSensorParameter
     GetSensorParameter.restype = ctypes.c_int
     GetSensorParameter.argtypes = [ctypes.c_ushort, enum_type,
                                    ctypes.c_void_p, ctypes.c_int]
@@ -227,7 +227,7 @@ if _api is not None:
                             to set (write) the parameter.
 
     """
-    SetSensorParameter = _api._SetSensorParameter
+    SetSensorParameter = _api.SetSensorParameter
     SetSensorParameter.restype = ctypes.c_int
     SetSensorParameter.argtypes = [ctypes.c_ushort, enum_type,
                                    ctypes.c_void_p, ctypes.c_int]
@@ -244,7 +244,7 @@ if _api is not None:
         Remarks:            Same as Sensor command
 
     """
-    GetTransmitterParameter = _api._GetTransmitterParameter
+    GetTransmitterParameter = _api.GetTransmitterParameter
     GetTransmitterParameter.restype = ctypes.c_int
     GetTransmitterParameter.argtypes = [ctypes.c_ushort, enum_type,
                                         ctypes.c_void_p, ctypes.c_int]
@@ -261,7 +261,7 @@ if _api is not None:
         Remarks:            Same as sensor command
 
     """
-    SetTransmitterParameter = _api._SetTransmitterParameter
+    SetTransmitterParameter = _api.SetTransmitterParameter
     SetTransmitterParameter.restype = ctypes.c_int
     SetTransmitterParameter.argtypes = [ctypes.c_ushort, enum_type,
                                         ctypes.c_void_p, ctypes.c_int]
@@ -276,7 +276,7 @@ if _api is not None:
                             if available
 
     """
-    GetBIRDError = _api._GetBIRDError
+    GetBIRDError = _api.GetBIRDError
     GetBIRDError.restype = ctypes.c_int
 
     """ GetErrorText
@@ -297,38 +297,38 @@ if _api is not None:
                             parameter is an enumerated constant of
                             the type MESSAGE_TYPE.
     """
-    GetErrorText = _api._GetErrorText
+    GetErrorText = _api.GetErrorText
     GetErrorText.restype = ctypes.c_int
     GetErrorText.argtypes = [ctypes.c_int, ctypes.c_char_p,  # # TODO: ctypes.POINTER(ctypes.c_char)?
                              ctypes.c_int, enum_type]
 
     """ GetSensorStatus(USHORT sensorID)"""
-    GetSensorStatus = _api._GetSensorStatus
+    GetSensorStatus = _api.GetSensorStatus
     GetSensorStatus.restype = device_status
     GetSensorStatus.argtypes = [ctypes.c_ushort]
 
     """ GetTransmitterStatus( USHORT transmitterID)"""
-    GetTransmitterStatus = _api._GetTransmitterStatus
+    GetTransmitterStatus = _api.GetTransmitterStatus
     GetTransmitterStatus.restype = device_status
     GetTransmitterStatus.argtypes = [ctypes.c_ushort]
 
     """ GetBoardStatus( USHORT boardID) """
-    GetBoardStatus = _api._GetBoardStatus
+    GetBoardStatus = _api.GetBoardStatus
     GetBoardStatus.restype = device_status
     GetBoardStatus.argtypes = [ctypes.c_ushort]
 
     """ GetSystemStatus() """
-    GetSystemStatus = _api._GetSystemStatus
+    GetSystemStatus = _api.GetSystemStatus
     GetSystemStatus.restype = device_status
     GetSystemStatus.argtypes = [ctypes.c_ushort]
 
     """ SaveSystemConfiguration( LPCSTR  lpFileName); """
-    SaveSystemConfiguration = _api._SaveSystemConfiguration
+    SaveSystemConfiguration = _api.SaveSystemConfiguration
     SaveSystemConfiguration.restype = ctypes.c_int
     SaveSystemConfiguration.argtypes = [ctypes.c_char_p]
 
     """ RestoreSystemConfiguration( LPCSTR  lpFileName) """
-    RestoreSystemConfiguration = _api._RestoreSystemConfiguration
+    RestoreSystemConfiguration = _api.RestoreSystemConfiguration
     RestoreSystemConfiguration.restype = ctypes.c_int
     RestoreSystemConfiguration.argtypes = [ctypes.c_char_p]
 
@@ -338,7 +338,7 @@ if _api is not None:
         void                        *pBuffer,
         int                         bufferSize);
     """
-    GetBoardParameter = _api._GetBoardParameter
+    GetBoardParameter = _api.GetBoardParameter
     GetBoardParameter.restype = ctypes.c_ushort
     GetBoardParameter.argtypes = [ctypes.c_ushort, enum_type,
                                   ctypes.c_void_p, ctypes.c_int]
@@ -349,11 +349,11 @@ if _api is not None:
         void                        *pBuffer,
         int                         bufferSize)
     """
-    SetBoardParameter = _api._SetBoardParameter
+    SetBoardParameter = _api.SetBoardParameter
     SetBoardParameter.restype = ctypes.c_ushort
     SetBoardParameter.argtypes = [ctypes.c_ushort, enum_type,
                                   ctypes.c_void_p, ctypes.c_int]
 
     """CloseBIRDSystem() """
-    CloseBIRDSystem = _api._CloseBIRDSystem
+    CloseBIRDSystem = _api.CloseBIRDSystem
     CloseBIRDSystem.restype = ctypes.c_ushort

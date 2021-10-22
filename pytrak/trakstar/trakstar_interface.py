@@ -173,7 +173,7 @@ class TrakSTARInterface(object):
     def _error_handler(self, error_code):
         print("** Error: ", error_code)
         txt = " " * 500
-        pbuffer = ctypes.c_char_p(txt)
+        pbuffer = ctypes.c_char_p(txt.encode('ascii'))
         api.GetErrorText(error_code, pbuffer, ctypes.c_int(500),
                          api.MessageType.VERBOSE_MESSAGE)
         print(pbuffer.value)
