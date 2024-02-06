@@ -8,8 +8,8 @@ Python-based motion tracking software for 3D Guidance trakSTAR
  
 Dependencies
 ------------
-* Python 2.7 & NumPy 1.7 or higher
-* Expyriment 0.7.0 or higher
+* Python 3 & NumPy or higher
+* Expyriment 0.8.0 or higher
 * trakSTAR Windows API (`ATC3DG.DLL` or `ATC3DG64.DLL`). The dynamic link library is needed in the Windows 
   system folder or in the `pytrak` subfolder. (see trakSTAR driver CD or ftp.ascension-tech.com)
 
