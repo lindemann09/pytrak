@@ -2,13 +2,13 @@ import os
 from threading import Thread
 from expyriment import control, stimuli, design, io, misc
 
-from __init__ import __version__
-import settings
-from settings import Command
-from recording_screen import RecordingScreen
-from plotter_xyz import PlotterXYZ
-from trakstar import TrakSTARInterface, TrakSTARRecordingThread
-from sensor_history import SensorHistory
+from .__init__ import __version__
+from . import settings
+from .settings import Command
+from .recording_screen import RecordingScreen
+from .plotter_xyz import PlotterXYZ
+from .trakstar import TrakSTARInterface, TrakSTARRecordingThread
+from .sensor_history import SensorHistory
 
 
 
@@ -132,11 +132,11 @@ def prepare_recoding(remote_control, filename):
         if key == ord("y") or key == ord("z"):
             menu = settings.get_menu(exp)
             menu.present()
-            key = exp.keyboard.wait(range(ord("1"), ord("5") + 1) + [ord("q")])[0]
+            key = exp.keyboard.wait(list(range(ord("1"), ord("5") + 1)) + [ord("q")])[0]
             while key != ord("q"):
                 settings.get_input(exp, int(chr(int(key))))
                 menu.present()
-                key = exp.keyboard.wait(range(ord("1"), ord("5") + 1) +
+                key = exp.keyboard.wait(list(range(ord("1"), ord("5") + 1)) +
                             [ord("q")])[0]
 
     #set system settings
@@ -248,7 +248,7 @@ def record_data(remote_control, recording_screen):
         # get data and process
         data_array = trakstar_thread.get_data_array()
         for data in data_array:
-            if data.has_key(detection_sensor_id):
+            if detection_sensor_id in data:
                 history.update(data[detection_sensor_id][:3]) 
                 ## movement detection
                 # move = history.is_moving(velocity_threshold=4,
@@ -291,7 +291,7 @@ def record_data(remote_control, recording_screen):
                 recording_screen.stimulus("Paused recording").present()
 
         # process commands of last loop (ignore Nones)
-        for command in filter(lambda x:x is not None, command_array):
+        for command in [x for x in command_array if x is not None]:
             if command == Command.quit:
                 quit_recording = True
                 break
@@ -308,7 +308,7 @@ def record_data(remote_control, recording_screen):
             elif command == Command.normalize_plotting:
                 plotter.reset_start_values()
             elif command == Command.set_reference_position:
-                print "set reference point"
+                print("set reference point")
                 history.set_reference_area(radius= 10) # TODO settings
             elif command == Command.set_marker:
                 set_marker = True
@@ -319,7 +319,7 @@ def record_data(remote_control, recording_screen):
 
 def run(remote_control = None, filename=None):
     global trakstar, exp, udp_connection
-    print "Pytrak", __version__
+    print("Pytrak", __version__)
     remote_control, filename = initialize(remote_control, filename)
     if not trakstar.is_init:
         end()

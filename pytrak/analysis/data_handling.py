@@ -5,7 +5,7 @@ __author__ = "Oliver Lindemann"
 import csv
 import numpy as np
 
-from movement_analysis import inch2cm, estimate_sample_rate
+from .movement_analysis import inch2cm, estimate_sample_rate
 
 def load_csv(filename, comment_char = "#"):
     """TODO load csv file pytrak file"""
@@ -26,13 +26,13 @@ def load_csv(filename, comment_char = "#"):
 
         for row, record in enumerate(reader):
             if record[0].strip().startswith(comment_char):
-                print record
+                print(record)
             elif varnames is None:
                 varnames = record
-                print varnames
+                print(varnames)
             else:
                 s = int(record[1])  # sensor_id
-                data[s].append(map(lambda x: np.float(x), record[2:5]))
+                data[s].append([np.float(x) for x in record[2:5]])
                 quality[s].append(np.float(record[5]))
 
                 # timestamps
@@ -42,13 +42,13 @@ def load_csv(filename, comment_char = "#"):
                         timestamps.append(t)
                 except:
                     timestamps.append(t)
-    sensor_ids = filter(lambda x: len(data[x])>0, sensor_ids)  # remove unused data_ids
+    sensor_ids = [x for x in sensor_ids if len(data[x])>0]  # remove unused data_ids
 
     timestamps = np.array(timestamps)
-    quality = np.array(map(lambda x: np.array(quality[x]), sensor_ids))
-    data = np.array(map(lambda x: np.array(data[x]), sensor_ids))
-    print "data:", np.shape(data)
-    print "estimated sample rate", estimate_sample_rate(data)
+    quality = np.array([np.array(quality[x]) for x in sensor_ids])
+    data = np.array([np.array(data[x]) for x in sensor_ids])
+    print("data:", np.shape(data))
+    print("estimated sample rate", estimate_sample_rate(data))
     return sensor_ids, data, timestamps, quality
 
 def convert_data2npz(filename, correct_hemisphere_crossing=True,
@@ -58,14 +58,14 @@ def convert_data2npz(filename, correct_hemisphere_crossing=True,
     """
     sensor_ids, data, timestamps, quality = load_csv(filename)
     if convert_inch2cm:
-        print "Converting inch to cm"
+        print("Converting inch to cm")
         data = inch2cm(data)
     if correct_hemisphere_crossing:
-        print "correcting hemispherer crossing"
+        print("correcting hemispherer crossing")
         data = correct_hemisphere_crossings(data, coordinates=[0,1,2])
 
     filename = filename.rsplit(".", 1)[ 0 ] + ".npz"
-    print "save ", filename
+    print("save ", filename)
     with open(filename, "w") as npzfile:
         np.savez(npzfile, timestamps=timestamps,
                  data=data, sensor_ids = sensor_ids,

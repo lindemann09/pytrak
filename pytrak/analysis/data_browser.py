@@ -10,8 +10,8 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg as NavigationToolbar
 from matplotlib.figure import Figure
 
-import data_handling
-import movement_analysis
+from . import data_handling
+from . import movement_analysis
 
 class AppForm(QtGui.QMainWindow):
     def __init__(self, parent=None):
@@ -32,7 +32,7 @@ class AppForm(QtGui.QMainWindow):
     def save_plot(self):
         file_choices = "PNG (*.png)|*.png"
 
-        path = unicode(QtGui.QFileDialog.getSaveFileName(self,
+        path = str(QtGui.QFileDialog.getSaveFileName(self,
                         'Save file', '',
                         file_choices))
         if path:
@@ -61,14 +61,14 @@ Pytrak Browser
 
     def on_convert_csv(self):
         diag = QtGui.QFileDialog()
-        self.filename = unicode(diag.getOpenFileName(self,
+        self.filename = str(diag.getOpenFileName(self,
                         'Get CSV file', "",
                         "*.csv"))
         data_handling.convert_data2npz(self.filename)
 
     def on_load_data(self):
         self.block_drawing = True
-        self.filename = unicode(QtGui.QFileDialog.getOpenFileName(self,
+        self.filename = str(QtGui.QFileDialog.getOpenFileName(self,
                         'Load file', "",
                         "pytrak npz (*.npz)"))
 
@@ -103,8 +103,7 @@ Pytrak Browser
 
     def set_ylims(self):
         try:
-            self.y_lim = map(lambda x:int(float(x)),
-                             self._gui_txt_ylims.text().split(","))
+            self.y_lim = [int(float(x)) for x in self._gui_txt_ylims.text().split(",")]
             if len(self.y_lim) != 2:
                 self.y_lim = [int(np.min(self.data)), int(np.max(self.data))]
         except:
@@ -122,7 +121,7 @@ Pytrak Browser
         self._gui_forward.setDisabled(self.x_position+self.xrange_width >= self.n_samples)
         self._gui_slider.setValue(self.x_position)
 
-        xrange = range(self.x_position, self.x_position + self.xrange_width)
+        xrange = list(range(self.x_position, self.x_position + self.xrange_width))
         if self._gui_timestamps_cb.isChecked():
             xvalues = self.timestamps[xrange]/1000.0
         else:

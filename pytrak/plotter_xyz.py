@@ -1,8 +1,8 @@
 import numpy as np
 import pygame
 
-import settings
-from plotter import PlotterThread, lock_expyriment
+from . import settings
+from .plotter import PlotterThread, lock_expyriment
 
 
 class PlotterXYZ(object):

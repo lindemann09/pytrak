@@ -18,8 +18,7 @@ def velocity(data, timestamps):
     diff_meter = (data[:, 0:-1, :]-data[:, 1:,:])/100.0
     dist = np.sqrt(np.sum(diff_meter**2, axis=2))
     tdiff = np.diff(timestamps)/1000.0
-    velocity = map(lambda x: np.concatenate(([0], x/tdiff)),
-                    dist)
+    velocity = [np.concatenate(([0], x/tdiff)) for x in dist]
     return np.transpose(np.array(velocity))
 
 def estimate_sample_rate(timestamps):
@@ -39,11 +38,11 @@ def butter_lowpass(lowcut, sample_rate, order=3):
 def butter_lowpass_filter(data, lowcut=10, order=3,
                            sample_rate=None):
     """filter data of all sensors"""
-    print "filtering data"
+    print("filtering data")
     if sample_rate is None:
         sample_rate = estimate_sample_rate(data)
     b, a = butter_lowpass(lowcut, sample_rate, order=order)
-    filtered = map(lambda x: signal.lfilter(b, a, x), data)
+    filtered = [signal.lfilter(b, a, x) for x in data]
     return np.array(filtered)
 
 def moving_average_filter(data, window_size=5):

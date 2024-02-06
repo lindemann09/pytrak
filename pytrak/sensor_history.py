@@ -45,9 +45,7 @@ class SensorHistory():
             self.moving_average = self.calc_history_average()
         else:
             self._correction_cnt += 1
-            self.moving_average = map(
-                lambda x: x[0] + (float(x[1] - x[2]) / len(self.history)),
-                zip(self.moving_average, values, pop))
+            self.moving_average = [x[0] + (float(x[1] - x[2]) / len(self.history)) for x in zip(self.moving_average, values, pop)]
 
 
     def calc_history_average(self):
@@ -61,8 +59,8 @@ class SensorHistory():
 
         s = [float(0)] * self.number_of_parameter
         for t in self.history:
-            s = map(lambda x: x[0] + x[1], zip(s, t))
-        return map(lambda x: x / len(self.history), s)
+            s = [x[0] + x[1] for x in zip(s, t)]
+        return [x / len(self.history) for x in s]
 
     def distance_to_point(self, point):
         """returns current euclidian distance to a point in space, based on
@@ -73,8 +71,7 @@ class SensorHistory():
         point has to match in the number of dimensions
         """
 
-        return math.sqrt(sum(map(lambda x: (x[1] - x[0]) ** 2,
-                                 zip(self.moving_average, point))))
+        return math.sqrt(sum([(x[1] - x[0]) ** 2 for x in zip(self.moving_average, point)]))
 
     @property
     def history_size(self):
@@ -91,8 +88,8 @@ class SensorHistory():
     @property
     def replacement(self):
         """returns the current replacement based on filtered data"""
-        return map(lambda x: x[0] - x[1], zip(self.moving_average,
-                                              self._previous_moving_average))
+        return [x[0] - x[1] for x in zip(self.moving_average,
+                                              self._previous_moving_average)]
 
     def velocity(self, sampling_rate):
         """returns the current velocity based on filtered data"""
@@ -147,9 +144,9 @@ if __name__ == "__main__":
                     random.randint(0, 100)]
             sh.update(x)
 
-        print sh.moving_average, sh.calc_history_average()
-        print sh.velocity(100)
+        print(sh.moving_average, sh.calc_history_average())
+        print(sh.velocity(100))
 
     import timeit
-    print timeit.timeit(run, number=4)
+    print(timeit.timeit(run, number=4))
 
